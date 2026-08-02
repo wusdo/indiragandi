@@ -37,7 +37,7 @@ Link yapıştırdığın anda kapak, başlık, kanal ve süre önizlemesi gelir.
 Homebrew, Python paketi, hiçbir şey gerekmiyor — kurulum her şeyi kendi indiriyor. **sudo istemez.**
 
 ```bash
-git clone https://github.com/KULLANICI/indiragandi.git
+git clone https://github.com/wusdo/indiragandi.git
 cd indiragandi
 bash kur.sh
 ```
