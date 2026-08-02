@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>İNDİRAGANDİ</title>
+<style>
+:root{
+  --bg:#0d0a18;
+  --bg2:#151027;
+  --panel:#1e1838;
+  --panel2:#282050;
+  --brd:#5a4a9e;
+  --brd2:#3a2f6b;
+  --pink:#ff3d81;
+  --cyan:#4deeea;
+  --green:#74ee15;
+  --yellow:#ffe700;
+  --red:#ff4757;
+  --txt:#e9e6ff;
+  --dim:#8b82c4;
+  --px:4px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg);
+  background-image:
+    linear-gradient(rgba(90,74,158,.07) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(90,74,158,.07) 1px,transparent 1px);
+  background-size:16px 16px;
+  color:var(--txt);
+  font-family:"Press Start 2P",Monaco,"Courier New",monospace;
+  font-size:11px;
+  line-height:1.9;
+  letter-spacing:.5px;
+  padding:24px 16px 60px;
+  -webkit-font-smoothing:none;
+  image-rendering:pixelated;
+}
+/* tarama çizgileri */
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:99;
+  background:repeating-linear-gradient(180deg,rgba(0,0,0,.18) 0 1px,transparent 1px 3px);
+  mix-blend-mode:multiply;
+}
+.wrap{max-width:640px;margin:0 auto}
+
+/* ---- pixel kutu ---- */
+.px{
+  background:var(--panel);
+  box-shadow:
+    0 calc(var(--px)*-1) 0 0 var(--brd),
+    0 var(--px) 0 0 var(--brd),
+    calc(var(--px)*-1) 0 0 0 var(--brd),
+    var(--px) 0 0 0 var(--brd),
+    0 0 0 var(--px) var(--brd2) inset;
+}
+
+/* ---- başlık ---- */
+header{display:flex;align-items:center;gap:14px;margin-bottom:26px}
+#sprite{width:72px;height:72px;image-rendering:pixelated;flex:0 0 auto}
+h1{
+  font-size:22px;line-height:1.3;letter-spacing:2px;font-weight:400;
+  color:var(--yellow);
+  text-shadow:
+    3px 0 0 var(--pink), 0 3px 0 var(--pink),
+    3px 3px 0 #000, 6px 6px 0 rgba(0,0,0,.45);
+}
+.tag{color:var(--cyan);font-size:9px;letter-spacing:1px;margin-top:8px;display:block}
+
+/* ---- bölüm ---- */
+.blok{padding:16px;margin-bottom:22px}
+.etiket{color:var(--dim);font-size:9px;letter-spacing:1px;margin-bottom:10px;display:block}
+.etiket b{color:var(--cyan)}
+
+/* ---- input ---- */
+.satir{display:flex;gap:10px;flex-wrap:wrap}
+input[type=text]{
+  flex:1 1 240px;min-width:0;
+  background:var(--bg2);border:0;outline:0;
+  color:var(--green);
+  font-family:inherit;font-size:11px;letter-spacing:.5px;
+  padding:12px;
+  box-shadow:0 0 0 var(--px) var(--brd2) inset;
+}
+input[type=text]::placeholder{color:#544a86}
+input[type=text]:focus{box-shadow:0 0 0 var(--px) var(--cyan) inset}
+
+/* ---- buton ---- */
+button{
+  font-family:inherit;font-size:10px;letter-spacing:1px;
+  color:var(--txt);background:var(--panel2);
+  border:0;cursor:pointer;padding:12px 14px;
+  text-transform:uppercase;
+  box-shadow:
+    0 -3px 0 0 var(--brd), 0 3px 0 0 var(--brd),
+    -3px 0 0 0 var(--brd), 3px 0 0 0 var(--brd),
+    0 6px 0 0 rgba(0,0,0,.5);
+  transition:none;
+}
+button:hover{background:var(--brd2);color:var(--yellow)}
+button:active{transform:translateY(3px);box-shadow:
+  0 -3px 0 0 var(--brd), 0 3px 0 0 var(--brd),
+  -3px 0 0 0 var(--brd), 3px 0 0 0 var(--brd)}
+button:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* ---- format ızgarası ---- */
+.formatlar{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.fbtn{
+  position:relative;text-align:center;padding:14px 6px;line-height:1.5;
+}
+.fbtn .ust{display:block;font-size:13px;color:var(--cyan)}
+.fbtn .alt{display:block;font-size:8px;color:var(--dim);letter-spacing:0}
+.fbtn.sec{background:var(--pink)}
+.fbtn.sec .ust,.fbtn.sec .alt{color:#fff}
+.fbtn.sec::after{
+  content:"";position:absolute;left:6px;top:6px;width:5px;height:5px;background:var(--yellow)
+}
+
+/* ---- büyük indir ---- */
+#indirBtn{
+  width:100%;margin-top:18px;padding:18px;font-size:14px;letter-spacing:3px;
+  background:var(--green);color:#0d0a18;
+}
+#indirBtn:hover{background:var(--yellow);color:#0d0a18}
+
+/* ---- bilgi kartı ---- */
+#bilgi{display:none;gap:12px;align-items:flex-start;margin-top:16px;padding:12px;background:var(--bg2);box-shadow:0 0 0 var(--px) var(--brd2) inset}
+#bilgi.acik{display:flex}
+#kapak{width:96px;height:54px;object-fit:cover;flex:0 0 auto;background:#000;image-rendering:auto;box-shadow:0 0 0 2px var(--brd2)}
+#bilgiMetin{min-width:0}
+#bilgiBaslik{color:var(--txt);font-size:10px;line-height:1.7;word-break:break-word}
+#bilgiAlt{color:var(--dim);font-size:8px;margin-top:6px}
+
+/* ---- ilerleme ---- */
+#ilerleme{display:none}
+#ilerleme.acik{display:block}
+.bar{
+  display:flex;gap:3px;margin:12px 0;
+}
+.bar i{flex:1;height:22px;background:var(--bg2);box-shadow:0 0 0 2px #000 inset}
+.bar i.dolu{background:var(--green);box-shadow:0 0 0 2px var(--yellow) inset}
+.bar i.son{background:var(--yellow)}
+.durumSatir{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;font-size:9px}
+#asama{color:var(--cyan)}
+#yuzde{color:var(--yellow);font-size:16px}
+#hizEta{color:var(--dim)}
+#hataKutu{display:none;margin-top:12px;padding:10px;background:#2a1020;color:var(--red);font-size:9px;line-height:1.8;word-break:break-word;box-shadow:0 0 0 2px var(--red) inset}
+#hataKutu.acik{display:block}
+
+/* ---- geçmiş ---- */
+#gecmis{list-style:none;font-size:9px;line-height:2.1}
+#gecmis li{color:var(--dim);border-bottom:2px dotted var(--brd2);padding:4px 0;display:flex;justify-content:space-between;gap:10px}
+#gecmis li span:first-child{color:var(--txt);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#gecmis li span:last-child{color:var(--cyan);flex:0 0 auto}
+#gecmis li.bos{color:var(--dim);border:0;justify-content:center}
+
+/* ---- alt bar ---- */
+footer{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:6px}
+footer button{font-size:9px;padding:10px 12px}
+select{
+  font-family:inherit;font-size:9px;color:var(--txt);background:var(--bg2);
+  border:0;outline:0;padding:11px 8px;cursor:pointer;
+  box-shadow:0 0 0 var(--px) var(--brd2) inset;
+}
+.mini{color:var(--dim);font-size:8px;text-align:center;margin-top:18px;line-height:2}
+.mini b{color:var(--pink)}
+@media (max-width:520px){
+  .formatlar{grid-template-columns:repeat(2,1fr)}
+  h1{font-size:16px}
+  #sprite{width:56px;height:56px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <canvas id="sprite" width="16" height="16"></canvas>
+    <div>
+      <h1>İNDİRAGANDİ</h1>
+      <span class="tag">▸ VIDEO INDIRME MAKINESI v1.0</span>
+    </div>
+  </header>
+
+  <!-- 1. LİNK -->
+  <section class="blok px">
+    <span class="etiket">[<b>1</b>] LINK YAPISTIR</span>
+    <div class="satir">
+      <input type="text" id="url" placeholder="https://youtube.com/..." autocomplete="off" spellcheck="false">
+      <button id="panoBtn" title="Panodan yapıştır">PANO</button>
+    </div>
+    <div id="bilgi">
+      <img id="kapak" alt="">
+      <div id="bilgiMetin">
+        <div id="bilgiBaslik">—</div>
+        <div id="bilgiAlt">—</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. FORMAT -->
+  <section class="blok px">
+    <span class="etiket">[<b>2</b>] KALITE SEC</span>
+    <div class="formatlar" id="formatlar">
+      <button class="fbtn px" data-f="mp3"><span class="ust">MP3</span><span class="alt">SADECE SES</span></button>
+      <button class="fbtn px" data-f="720"><span class="ust">720p</span><span class="alt">HAFIF</span></button>
+      <button class="fbtn px sec" data-f="1080"><span class="ust">1080p</span><span class="alt">FULL HD</span></button>
+      <button class="fbtn px" data-f="1440"><span class="ust">1440p</span><span class="alt">2K</span></button>
+      <button class="fbtn px" data-f="2160"><span class="ust">4K</span><span class="alt">2160p</span></button>
+      <button class="fbtn px" data-f="best"><span class="ust">MAX</span><span class="alt">EN IYISI</span></button>
+    </div>
+    <button id="indirBtn">▼ INDIR ▼</button>
+  </section>
+
+  <!-- 3. İLERLEME -->
+  <section class="blok px" id="ilerleme">
+    <span class="etiket">[<b>3</b>] DURUM</span>
+    <div class="durumSatir">
+      <span id="asama">Hazır</span>
+      <span id="yuzde">0%</span>
+    </div>
+    <div class="bar" id="bar"></div>
+    <div class="durumSatir">
+      <span id="hizEta"></span>
+      <span id="dosyaAd"></span>
+    </div>
+    <div id="hataKutu"></div>
+  </section>
+
+  <!-- GEÇMİŞ -->
+  <section class="blok px">
+    <span class="etiket">SON INENLER</span>
+    <ul id="gecmis"><li class="bos">— bos —</li></ul>
+  </section>
+
+  <footer>
+    <button id="klasorBtn">KLASORU AC</button>
+    <select id="cerez" title="Giriş gerektiren gönderiler için çerez">
+      <option value="yok">CEREZ: YOK</option>
+      <option value="safari">CEREZ: SAFARI</option>
+      <option value="chrome">CEREZ: CHROME</option>
+      <option value="firefox">CEREZ: FIREFOX</option>
+    </select>
+    <button id="guncelleBtn">MOTORU GUNCELLE</button>
+  </footer>
+
+  <p class="mini">
+    YOUTUBE · INSTAGRAM · TIKTOK · X · VIMEO · +1000 SITE<br>
+    indirilenler → <b>~/Downloads/İndirilenler</b>
+  </p>
+</div>
+
+<script>
+/* ============ pixel maskot ============ */
+const SPRITE = [
+"...K........K...",
+"....K......K....",
+".....K....K.....",
+"..KKKKKKKKKKKK..",
+"..KBBBBBBBBBBK..",
+"..KBSSSSSSSSBK..",
+"..KBSSSPPSSSBK..",
+"..KBSSSPPSSSBK..",
+"..KBSPPPPPPSBK..",
+"..KBSSPPPPSSBK..",
+"..KBSSSPPSSSBK..",
+"..KBSSSSSSSSBK..",
+"..KBBBBBBBBBBK..",
+"..KBYBBBBBBYBK..",
+"..KKKKKKKKKKKK..",
+"...K.K....K.K..."
+];
+const RENK = {K:"#120e20",B:"#6b4ea8",S:"#4deeea",P:"#ff3d81",Y:"#ffe700"};
+const cv = document.getElementById("sprite"), cx = cv.getContext("2d");
+let blink = 0;
+function cizSprite(){
+  cx.clearRect(0,0,16,16);
+  for(let y=0;y<16;y++)for(let x=0;x<16;x++){
+    let c = SPRITE[y][x];
+    if(c==="." ) continue;
+    if(c==="Y" && blink) c="P";
+    cx.fillStyle = RENK[c]; cx.fillRect(x,y,1,1);
+  }
+}
+cizSprite();
+setInterval(()=>{blink=blink?0:1;cizSprite();},600);
+
+/* ============ durum ============ */
+let format = "1080", isID = null, anket = null;
+
+const $ = s => document.querySelector(s);
+const url = $("#url");
+
+/* ---- ilerleme çubuğu ---- */
+const BLOK = 20, bar = $("#bar");
+for(let i=0;i<BLOK;i++) bar.appendChild(document.createElement("i"));
+function ciz(p){
+  const dolu = Math.round(p/100*BLOK);
+  [...bar.children].forEach((el,i)=>{
+    el.className = i<dolu ? (i===dolu-1 && p<100 ? "dolu son" : "dolu") : "";
+  });
+  $("#yuzde").textContent = Math.round(p)+"%";
+}
+ciz(0);
+
+/* ---- format seçimi ---- */
+$("#formatlar").addEventListener("click", e=>{
+  const b = e.target.closest(".fbtn"); if(!b) return;
+  document.querySelectorAll(".fbtn").forEach(x=>x.classList.remove("sec"));
+  b.classList.add("sec"); format = b.dataset.f; bip(880,.04);
+});
+
+/* ---- pano ---- */
+$("#panoBtn").onclick = async ()=>{
+  try{
+    const t = await navigator.clipboard.readText();
+    if(t && t.trim().startsWith("http")){ url.value = t.trim(); bilgiGetir(); }
+    else url.focus();
+  }catch(e){ url.focus(); }
+};
+
+/* ---- link bilgisi ---- */
+let bilgiZaman = null;
+url.addEventListener("input", ()=>{
+  clearTimeout(bilgiZaman);
+  bilgiZaman = setTimeout(bilgiGetir, 700);
+});
+url.addEventListener("keydown", e=>{ if(e.key==="Enter") basla(); });
+
+async function bilgiGetir(){
+  const u = url.value.trim();
+  if(!u.startsWith("http")){ $("#bilgi").classList.remove("acik"); return; }
+  $("#bilgi").classList.add("acik");
+  $("#bilgiBaslik").textContent = "Bilgi alınıyor...";
+  $("#bilgiAlt").textContent = "";
+  $("#kapak").removeAttribute("src");
+  try{
+    const r = await fetch("/api/bilgi",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({url:u,cerez:$("#cerez").value})});
+    const d = await r.json();
+    if(d.hata){
+      $("#bilgiBaslik").textContent = "Bilgi alınamadı (yine de deneyebilirsin)";
+      $("#bilgiAlt").textContent = "";
+      return;
+    }
+    $("#bilgiBaslik").textContent = d.baslik;
+    const dk = d.sure ? Math.floor(d.sure/60)+":"+String(Math.floor(d.sure%60)).padStart(2,"0") : "";
+    $("#bilgiAlt").textContent = [d.site, d.kanal, dk].filter(Boolean).join("  ·  ");
+    if(d.kapak) $("#kapak").src = d.kapak;
+  }catch(e){
+    $("#bilgiBaslik").textContent = "Sunucuya ulaşılamadı";
+  }
+}
+
+/* ---- indirme ---- */
+$("#indirBtn").onclick = basla;
+
+async function basla(){
+  const u = url.value.trim();
+  if(!u.startsWith("http")){ url.focus(); bip(160,.15); return; }
+  $("#indirBtn").disabled = true;
+  $("#ilerleme").classList.add("acik");
+  $("#hataKutu").classList.remove("acik");
+  $("#dosyaAd").textContent = "";
+  $("#asama").textContent = "Başlatılıyor...";
+  ciz(0);
+  try{
+    const r = await fetch("/api/indir",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({url:u,format:format,cerez:$("#cerez").value})});
+    const d = await r.json();
+    if(!d.id) throw new Error(d.hata||"Başlatılamadı");
+    isID = d.id;
+    anket = setInterval(kontrol, 500);
+  }catch(e){
+    hata(e.message); $("#indirBtn").disabled = false;
+  }
+}
+
+async function kontrol(){
+  if(!isID) return;
+  try{
+    const d = await (await fetch("/api/durum?id="+isID)).json();
+    if(d.asama) $("#asama").textContent = d.asama;
+    if(typeof d.yuzde === "number") ciz(d.yuzde);
+    $("#hizEta").textContent = [d.hiz, d.eta && ("kalan "+d.eta)].filter(Boolean).join("   ");
+
+    if(d.durum === "bitti"){
+      dur(); ciz(100);
+      $("#asama").textContent = "✓ TAMAMLANDI";
+      $("#hizEta").textContent = "";
+      $("#dosyaAd").textContent = (d.dosya||"").slice(0,42);
+      zafer(); gecmisYukle();
+    } else if(d.durum === "hata"){
+      dur(); hata(d.hata || "Bilinmeyen hata");
+    }
+  }catch(e){}
+}
+
+function dur(){ clearInterval(anket); anket = null; isID = null; $("#indirBtn").disabled = false; }
+
+function hata(m){
+  $("#asama").textContent = "✗ HATA";
+  const k = $("#hataKutu");
+  k.classList.add("acik");
+  k.textContent = m + (/login|cookie|private|sign in|rate/i.test(m)
+    ? "  →  Alttan CEREZ: SAFARI seçip tekrar dene."
+    : "  →  MOTORU GUNCELLE deneyebilirsin.");
+  bip(140,.25);
+}
+
+/* ---- geçmiş ---- */
+async function gecmisYukle(){
+  try{
+    const liste = await (await fetch("/api/gecmis")).json();
+    const ul = $("#gecmis"); ul.innerHTML = "";
+    if(!liste.length){ ul.innerHTML = '<li class="bos">— bos —</li>'; return; }
+    liste.forEach(f=>{
+      const li = document.createElement("li");
+      const a = document.createElement("span"); a.textContent = f.ad;
+      const b = document.createElement("span"); b.textContent = f.mb + " MB";
+      li.append(a,b); ul.appendChild(li);
+    });
+  }catch(e){}
+}
+gecmisYukle();
+
+/* ---- alt bar ---- */
+$("#klasorBtn").onclick = ()=> fetch("/api/klasor");
+$("#guncelleBtn").onclick = async (e)=>{
+  e.target.disabled = true; const eski = e.target.textContent;
+  e.target.textContent = "GUNCELLENIYOR...";
+  try{
+    const d = await (await fetch("/api/guncelle",{method:"POST"})).json();
+    $("#ilerleme").classList.add("acik");
+    $("#asama").textContent = "MOTOR";
+    $("#hataKutu").classList.add("acik");
+    $("#hataKutu").textContent = d.cikti || "bitti";
+  }catch(err){}
+  e.target.disabled = false; e.target.textContent = eski;
+};
+
+/* ---- 8-bit ses ---- */
+let ac = null;
+function bip(f,s){
+  try{
+    ac = ac || new (window.AudioContext||window.webkitAudioContext)();
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = "square"; o.frequency.value = f;
+    g.gain.value = .04;
+    o.connect(g); g.connect(ac.destination);
+    o.start(); o.stop(ac.currentTime + s);
+  }catch(e){}
+}
+function zafer(){ [523,659,784,1047].forEach((f,i)=> setTimeout(()=>bip(f,.09), i*90)); }
+
+url.focus();
+</script>
+</body>
+</html>

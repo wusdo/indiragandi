@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<title>İNDİRAGANDİ</title>
+<style>
+:root{
+  --bg:#0d0a18; --bg2:#151027; --panel:#1e1838; --panel2:#282050;
+  --brd:#5a4a9e; --brd2:#3a2f6b;
+  --pink:#ff3d81; --cyan:#4deeea; --green:#74ee15; --yellow:#ffe700; --red:#ff4757;
+  --txt:#e9e6ff; --dim:#8b82c4; --px:3px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{
+  background:var(--bg);
+  background-image:
+    linear-gradient(rgba(90,74,158,.07) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(90,74,158,.07) 1px,transparent 1px);
+  background-size:14px 14px;
+  color:var(--txt);
+  font-family:Monaco,"Courier New",monospace;
+  font-size:10px;line-height:1.8;letter-spacing:.4px;
+  padding:14px 12px 22px;
+  -webkit-font-smoothing:none;
+  image-rendering:pixelated;
+  overflow-x:hidden;
+}
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:99;
+  background:repeating-linear-gradient(180deg,rgba(0,0,0,.16) 0 1px,transparent 1px 3px);
+  mix-blend-mode:multiply;
+}
+.px{
+  background:var(--panel);
+  box-shadow:
+    0 calc(var(--px)*-1) 0 0 var(--brd), 0 var(--px) 0 0 var(--brd),
+    calc(var(--px)*-1) 0 0 0 var(--brd), var(--px) 0 0 0 var(--brd),
+    0 0 0 var(--px) var(--brd2) inset;
+}
+header{display:flex;align-items:center;gap:10px;margin-bottom:16px}
+#sprite{width:46px;height:46px;image-rendering:pixelated;flex:0 0 auto}
+h1{
+  font-size:14px;letter-spacing:1.5px;font-weight:400;color:var(--yellow);
+  text-shadow:2px 0 0 var(--pink),0 2px 0 var(--pink),2px 2px 0 #000;
+}
+.tag{color:var(--cyan);font-size:8px;display:block;margin-top:3px}
+#hostAd{color:var(--green)}
+.blok{padding:11px;margin-bottom:14px}
+.etiket{color:var(--dim);font-size:8px;margin-bottom:7px;display:block}
+.etiket b{color:var(--cyan)}
+.satir{display:flex;gap:7px}
+input[type=text]{
+  flex:1;min-width:0;background:var(--bg2);border:0;outline:0;color:var(--green);
+  font-family:inherit;font-size:10px;padding:9px;
+  box-shadow:0 0 0 var(--px) var(--brd2) inset;
+}
+input[type=text]::placeholder{color:#544a86}
+input[type=text]:focus{box-shadow:0 0 0 var(--px) var(--cyan) inset}
+button{
+  font-family:inherit;font-size:9px;letter-spacing:.8px;color:var(--txt);
+  background:var(--panel2);border:0;cursor:pointer;padding:9px 10px;text-transform:uppercase;
+  box-shadow:
+    0 -3px 0 0 var(--brd),0 3px 0 0 var(--brd),
+    -3px 0 0 0 var(--brd),3px 0 0 0 var(--brd),0 5px 0 0 rgba(0,0,0,.5);
+}
+button:hover{background:var(--brd2);color:var(--yellow)}
+button:active{transform:translateY(3px);box-shadow:
+  0 -3px 0 0 var(--brd),0 3px 0 0 var(--brd),
+  -3px 0 0 0 var(--brd),3px 0 0 0 var(--brd)}
+button:disabled{opacity:.4;cursor:not-allowed;transform:none}
+.formatlar{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.fbtn{position:relative;text-align:center;padding:9px 3px;line-height:1.4}
+.fbtn .ust{display:block;font-size:11px;color:var(--cyan)}
+.fbtn .alt{display:block;font-size:7px;color:var(--dim)}
+.fbtn.sec{background:var(--pink)}
+.fbtn.sec .ust,.fbtn.sec .alt{color:#fff}
+.fbtn.sec::after{content:"";position:absolute;left:4px;top:4px;width:4px;height:4px;background:var(--yellow)}
+#indirBtn{width:100%;margin-top:12px;padding:14px;font-size:12px;letter-spacing:2px;background:var(--green);color:#0d0a18}
+#indirBtn:hover{background:var(--yellow);color:#0d0a18}
+#bilgi{display:none;margin-top:11px;padding:9px;background:var(--bg2);box-shadow:0 0 0 var(--px) var(--brd2) inset}
+#bilgi.acik{display:block}
+#bilgiBaslik{font-size:9px;line-height:1.6;word-break:break-word}
+#bilgiAlt{color:var(--dim);font-size:7px;margin-top:4px}
+.secenek{display:flex;align-items:center;gap:7px;margin-top:11px;cursor:pointer;font-size:8px;color:var(--dim)}
+.kutu{width:14px;height:14px;flex:0 0 auto;background:var(--bg2);box-shadow:0 0 0 2px var(--brd2) inset;position:relative}
+.secenek.acik .kutu{background:var(--cyan)}
+.secenek.acik .kutu::after{content:"";position:absolute;inset:3px;background:var(--bg)}
+.secenek.acik{color:var(--cyan)}
+#ilerleme{display:none}
+#ilerleme.acik{display:block}
+.bar{display:flex;gap:2px;margin:9px 0}
+.bar i{flex:1;height:16px;background:var(--bg2);box-shadow:0 0 0 2px #000 inset}
+.bar i.dolu{background:var(--green);box-shadow:0 0 0 2px var(--yellow) inset}
+.bar i.son{background:var(--yellow)}
+.durumSatir{display:flex;justify-content:space-between;gap:8px;font-size:8px}
+#asama{color:var(--cyan)}
+#yuzde{color:var(--yellow);font-size:13px}
+#hizEta,#dosyaAd{color:var(--dim);font-size:7px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#hataKutu{display:none;margin-top:9px;padding:8px;background:#2a1020;color:var(--red);
+  font-size:8px;line-height:1.7;word-break:break-word;box-shadow:0 0 0 2px var(--red) inset}
+#hataKutu.acik{display:block}
+footer{display:flex;gap:7px;flex-wrap:wrap}
+footer button{flex:1;font-size:8px;padding:8px 4px}
+select{
+  font-family:inherit;font-size:8px;color:var(--txt);background:var(--bg2);
+  border:0;outline:0;padding:8px 4px;cursor:pointer;width:100%;margin-top:7px;
+  box-shadow:0 0 0 var(--px) var(--brd2) inset;
+}
+.mini{color:var(--dim);font-size:7px;text-align:center;margin-top:12px;line-height:1.9}
+#sunucuUyari{display:none;margin-bottom:14px;padding:10px;background:#2a1020;color:var(--yellow);font-size:8px;line-height:1.8;box-shadow:0 0 0 2px var(--red) inset}
+#sunucuUyari.acik{display:block}
+</style>
+</head>
+<body>
+
+<header>
+  <canvas id="sprite" width="16" height="16"></canvas>
+  <div>
+    <h1>İNDİRAGANDİ</h1>
+    <span class="tag">▸ <span id="hostAd">...</span> EKLENTISI</span>
+  </div>
+</header>
+
+<div id="sunucuUyari">
+  ⚠ MOTOR KAPALI<br>
+  Dock'taki <b>İndiragandi</b> uygulamasini bir kez ac,<br>
+  sonra asagidaki butona bas.
+  <button id="tekrarBtn" style="width:100%;margin-top:8px">TEKRAR DENE</button>
+</div>
+
+<section class="blok px">
+  <span class="etiket">[<b>1</b>] LINK</span>
+  <div class="satir">
+    <input type="text" id="url" placeholder="https://youtube.com/..." spellcheck="false">
+    <button id="panoBtn">PANO</button>
+  </div>
+  <div id="bilgi">
+    <div id="bilgiBaslik">—</div>
+    <div id="bilgiAlt"></div>
+  </div>
+</section>
+
+<section class="blok px">
+  <span class="etiket">[<b>2</b>] KALITE</span>
+  <div class="formatlar" id="formatlar">
+    <button class="fbtn px" data-f="mp3"><span class="ust">MP3</span><span class="alt">SES</span></button>
+    <button class="fbtn px" data-f="720"><span class="ust">720</span><span class="alt">HAFIF</span></button>
+    <button class="fbtn px sec" data-f="1080"><span class="ust">1080</span><span class="alt">FULL HD</span></button>
+    <button class="fbtn px" data-f="1440"><span class="ust">1440</span><span class="alt">2K</span></button>
+    <button class="fbtn px" data-f="2160"><span class="ust">4K</span><span class="alt">2160</span></button>
+    <button class="fbtn px" data-f="best"><span class="ust">MAX</span><span class="alt">EN IYI</span></button>
+  </div>
+
+  <div class="secenek acik" id="secProje"><span class="kutu"></span><span>PROJEYE OTOMATIK AKTAR</span></div>
+  <div class="secenek" id="secTimeline"><span class="kutu"></span><span id="tlYazi">TIMELINE'A DA KOY</span></div>
+
+  <select id="cerez">
+    <option value="yok">CEREZ: YOK</option>
+    <option value="safari">CEREZ: SAFARI</option>
+    <option value="chrome">CEREZ: CHROME</option>
+    <option value="firefox">CEREZ: FIREFOX</option>
+  </select>
+
+  <button id="indirBtn">▼ INDIR ▼</button>
+</section>
+
+<section class="blok px" id="ilerleme">
+  <span class="etiket">[<b>3</b>] DURUM</span>
+  <div class="durumSatir"><span id="asama">Hazır</span><span id="yuzde">0%</span></div>
+  <div class="bar" id="bar"></div>
+  <div class="durumSatir"><span id="hizEta"></span><span id="dosyaAd"></span></div>
+  <div id="hataKutu"></div>
+</section>
+
+<footer>
+  <button id="klasorBtn">KLASOR</button>
+  <button id="panelBtn">BUYUK PANEL</button>
+  <button id="guncelleBtn">GUNCELLE</button>
+</footer>
+
+<p class="mini">YOUTUBE · INSTAGRAM · TIKTOK · X · VIMEO<br>~/Downloads/İndirilenler</p>
+
+<script>
+/* ================= CEP köprüsü (minimal) ================= */
+var cep = {
+  var_: null,
+  evalScript: function(kod, geri){
+    if (window.__adobe_cep__) window.__adobe_cep__.evalScript(kod, geri || function(){});
+    else if (geri) geri("HATA|CEP yok");
+  },
+  host: function(){
+    try { return JSON.parse(window.__adobe_cep__.getHostEnvironment()).appName; }
+    catch(e){ return "?"; }
+  },
+  tarayicidaAc: function(u){
+    try { window.cep.util.openURLInDefaultBrowser(u); } catch(e){}
+  }
+};
+
+var HOST = cep.host();
+var HOST_AD = HOST === "PPRO" ? "PREMIERE" : (HOST === "AEFT" ? "AFTER EFFECTS" : HOST);
+document.getElementById("hostAd").textContent = HOST_AD;
+document.getElementById("tlYazi").textContent =
+  HOST === "AEFT" ? "ACIK COMP'A KATMAN EKLE" : "TIMELINE'A DA KOY";
+
+/* ================= pixel maskot ================= */
+var SPRITE = [
+"...K........K...","....K......K....",".....K....K.....","..KKKKKKKKKKKK..",
+"..KBBBBBBBBBBK..","..KBSSSSSSSSBK..","..KBSSSPPSSSBK..","..KBSSSPPSSSBK..",
+"..KBSPPPPPPSBK..","..KBSSPPPPSSBK..","..KBSSSPPSSSBK..","..KBSSSSSSSSBK..",
+"..KBBBBBBBBBBK..","..KBYBBBBBBYBK..","..KKKKKKKKKKKK..","...K.K....K.K..."];
+var RENK = {K:"#120e20",B:"#6b4ea8",S:"#4deeea",P:"#ff3d81",Y:"#ffe700"};
+var cv = document.getElementById("sprite"), cx = cv.getContext("2d"), blink = 0;
+function cizSprite(){
+  cx.clearRect(0,0,16,16);
+  for(var y=0;y<16;y++)for(var x=0;x<16;x++){
+    var c = SPRITE[y][x]; if(c===".") continue;
+    if(c==="Y" && blink) c="P";
+    cx.fillStyle = RENK[c]; cx.fillRect(x,y,1,1);
+  }
+}
+cizSprite(); setInterval(function(){ blink = blink?0:1; cizSprite(); }, 600);
+
+/* ================= durum ================= */
+var API = "http://127.0.0.1:8767";
+var format = "1080", isID = null, anket = null;
+var $ = function(s){ return document.querySelector(s); };
+var url = $("#url");
+
+var BLOK = 16, bar = $("#bar");
+for(var i=0;i<BLOK;i++) bar.appendChild(document.createElement("i"));
+function ciz(p){
+  var dolu = Math.round(p/100*BLOK);
+  var ch = bar.children;
+  for(var i=0;i<ch.length;i++)
+    ch[i].className = i<dolu ? ((i===dolu-1 && p<100) ? "dolu son" : "dolu") : "";
+  $("#yuzde").textContent = Math.round(p)+"%";
+}
+ciz(0);
+
+/* ---- sunucu kontrolü ---- */
+function sunucuKontrol(){
+  return fetch(API+"/api/gecmis").then(function(){
+    $("#sunucuUyari").classList.remove("acik"); return true;
+  }).catch(function(){
+    $("#sunucuUyari").classList.add("acik"); return false;
+  });
+}
+sunucuKontrol();
+$("#tekrarBtn").onclick = sunucuKontrol;
+
+/* ---- seçenekler ---- */
+$("#formatlar").addEventListener("click", function(e){
+  var b = e.target; while(b && !b.classList.contains("fbtn")) b = b.parentNode;
+  if(!b) return;
+  var hepsi = document.querySelectorAll(".fbtn");
+  for(var i=0;i<hepsi.length;i++) hepsi[i].classList.remove("sec");
+  b.classList.add("sec"); format = b.getAttribute("data-f"); bip(880,.04);
+});
+function ikili(id){
+  var el = $(id);
+  el.onclick = function(){ el.classList.toggle("acik"); bip(660,.03); };
+  return function(){ return el.classList.contains("acik"); };
+}
+var projeyeAktar = ikili("#secProje");
+var timelineKoy  = ikili("#secTimeline");
+
+/* ---- pano (sunucu üzerinden pbpaste) ---- */
+$("#panoBtn").onclick = function(){
+  fetch(API+"/api/pano").then(function(r){ return r.json(); }).then(function(d){
+    if(d.metin && d.metin.indexOf("http")===0){ url.value = d.metin; bilgiGetir(); }
+    else url.focus();
+  }).catch(function(){ url.focus(); });
+};
+
+/* ---- link bilgisi ---- */
+var bilgiZaman = null;
+url.addEventListener("input", function(){
+  clearTimeout(bilgiZaman); bilgiZaman = setTimeout(bilgiGetir, 700);
+});
+url.addEventListener("keydown", function(e){ if(e.key==="Enter") basla(); });
+
+function bilgiGetir(){
+  var u = url.value.replace(/\s/g,"");
+  if(u.indexOf("http")!==0){ $("#bilgi").classList.remove("acik"); return; }
+  $("#bilgi").classList.add("acik");
+  $("#bilgiBaslik").textContent = "Bilgi alınıyor...";
+  $("#bilgiAlt").textContent = "";
+  fetch(API+"/api/bilgi",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({url:u,cerez:$("#cerez").value})})
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(d.hata){ $("#bilgiBaslik").textContent = "Bilgi alınamadı (yine de dene)"; return; }
+    $("#bilgiBaslik").textContent = d.baslik;
+    var dk = d.sure ? Math.floor(d.sure/60)+":"+String(Math.floor(d.sure%60)).padStart(2,"0") : "";
+    $("#bilgiAlt").textContent = [d.site,d.kanal,dk].filter(Boolean).join("  ·  ");
+  })
+  .catch(function(){ $("#bilgiBaslik").textContent = "Motor kapalı"; sunucuKontrol(); });
+}
+
+/* ---- indirme ---- */
+$("#indirBtn").onclick = basla;
+
+function basla(){
+  var u = url.value.replace(/\s/g,"");
+  if(u.indexOf("http")!==0){ url.focus(); bip(160,.15); return; }
+  $("#indirBtn").disabled = true;
+  $("#ilerleme").classList.add("acik");
+  $("#hataKutu").classList.remove("acik");
+  $("#dosyaAd").textContent = "";
+  $("#asama").textContent = "Başlatılıyor...";
+  ciz(0);
+  fetch(API+"/api/indir",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({url:u,format:format,cerez:$("#cerez").value})})
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(!d.id) throw new Error(d.hata||"Başlatılamadı");
+    isID = d.id; anket = setInterval(kontrol, 500);
+  })
+  .catch(function(e){ hata(e.message); $("#indirBtn").disabled = false; sunucuKontrol(); });
+}
+
+function kontrol(){
+  if(!isID) return;
+  fetch(API+"/api/durum?id="+isID).then(function(r){ return r.json(); }).then(function(d){
+    if(d.asama) $("#asama").textContent = d.asama;
+    if(typeof d.yuzde === "number") ciz(d.yuzde);
+    $("#hizEta").textContent = [d.hiz, d.eta && ("kalan "+d.eta)].filter(Boolean).join("  ");
+
+    if(d.durum === "bitti"){
+      dur(); ciz(100);
+      $("#asama").textContent = "✓ INDI";
+      $("#hizEta").textContent = "";
+      $("#dosyaAd").textContent = (d.dosya||"").slice(0,34);
+      zafer();
+      if(projeyeAktar() && d.yol) iceAktar(d.yol);
+    } else if(d.durum === "hata"){
+      dur(); hata(d.hata || "Bilinmeyen hata");
+    }
+  }).catch(function(){});
+}
+
+function dur(){ clearInterval(anket); anket = null; isID = null; $("#indirBtn").disabled = false; }
+
+/* ---- ExtendScript'e gönder ---- */
+function iceAktar(yol){
+  $("#asama").textContent = "Projeye aktarılıyor...";
+  var guvenli = yol.replace(/\\/g,"\\\\").replace(/"/g,'\\"');
+  var tl = timelineKoy() ? "1" : "0";
+  cep.evalScript('igIceAktar("'+guvenli+'", "'+tl+'")', function(sonuc){
+    sonuc = String(sonuc || "");
+    var parca = sonuc.split("|");
+    if(parca[0] === "OK"){
+      $("#asama").textContent = "✓ " + (parca[1] || "Aktarildi");
+    } else {
+      $("#asama").textContent = "✓ INDI (aktarilamadi)";
+      hata(parca[1] || sonuc || "ExtendScript yanit vermedi");
+    }
+  });
+}
+
+function hata(m){
+  m = String(m||"");
+  $("#asama").textContent = $("#asama").textContent.indexOf("✓")===0 ? $("#asama").textContent : "✗ HATA";
+  var k = $("#hataKutu");
+  k.classList.add("acik");
+  k.textContent = m + (/login|cookie|private|sign in|rate/i.test(m)
+    ? "  →  CEREZ: SAFARI secip tekrar dene."
+    : "  →  GUNCELLE butonunu dene.");
+  bip(140,.25);
+}
+
+/* ---- alt bar ---- */
+$("#klasorBtn").onclick = function(){ fetch(API+"/api/klasor").catch(function(){}); };
+$("#panelBtn").onclick  = function(){ cep.tarayicidaAc("http://localhost:8767/"); };
+$("#guncelleBtn").onclick = function(e){
+  var b = e.target; b.disabled = true; var eski = b.textContent; b.textContent = "...";
+  fetch(API+"/api/guncelle",{method:"POST"}).then(function(r){ return r.json(); }).then(function(d){
+    $("#ilerleme").classList.add("acik");
+    $("#asama").textContent = "MOTOR";
+    $("#hataKutu").classList.add("acik");
+    $("#hataKutu").textContent = d.cikti || "bitti";
+  }).catch(function(){}).then(function(){ b.disabled = false; b.textContent = eski; });
+};
+
+/* ---- 8-bit ses ---- */
+var ac = null;
+function bip(f,s){
+  try{
+    ac = ac || new (window.AudioContext||window.webkitAudioContext)();
+    var o = ac.createOscillator(), g = ac.createGain();
+    o.type = "square"; o.frequency.value = f; g.gain.value = .04;
+    o.connect(g); g.connect(ac.destination);
+    o.start(); o.stop(ac.currentTime + s);
+  }catch(e){}
+}
+function zafer(){ [523,659,784,1047].forEach(function(f,i){ setTimeout(function(){ bip(f,.09); }, i*90); }); }
+</script>
+</body>
+</html>

@@ -1,0 +1,83 @@
+#!/bin/bash
+# indir — YouTube / Instagram / TikTok / X video indirici
+# Kullanım:  indir <link>        → linki indir
+#            indir               → panodaki linki indir
+#            indir -s <link>     → sadece ses (mp3)
+#            indir -g            → yt-dlp'yi güncelle
+
+YTDLP="$HOME/bin/yt-dlp"
+export PATH="$HOME/bin:$PATH"          # ffmpeg buradan bulunur
+HEDEF="$HOME/Downloads/İndirilenler"
+COOKIE_TARAYICI="${INDIR_COOKIE_BROWSER:-}"   # örn: safari, chrome, firefox
+
+bildir() {
+  osascript -e "display notification \"$2\" with title \"$1\"" >/dev/null 2>&1
+}
+
+# --- güncelleme ---
+if [ "$1" = "-g" ]; then
+  "$YTDLP" -U
+  exit $?
+fi
+
+# --- ses modu ---
+SES=0
+if [ "$1" = "-s" ]; then SES=1; shift; fi
+
+# --- link: argüman yoksa panodan ---
+LINK="$1"
+[ -z "$LINK" ] && LINK=$(pbpaste)
+LINK=$(echo "$LINK" | tr -d '[:space:]')
+
+if ! echo "$LINK" | grep -qE '^https?://'; then
+  bildir "İndir ✗" "Geçerli link bulunamadı"
+  echo "✗ Geçerli link yok. Kullanım: indir <link>  (veya linki kopyalayıp: indir)"
+  exit 1
+fi
+
+mkdir -p "$HEDEF"
+
+# --- Instagram / özel siteler için çerez desteği ---
+COOKIE_ARG=()
+if [ -n "$COOKIE_TARAYICI" ]; then
+  COOKIE_ARG=(--cookies-from-browser "$COOKIE_TARAYICI")
+fi
+
+# --- format ---
+if [ "$SES" = "1" ]; then
+  FORMAT_ARG=(-x --audio-format mp3 --audio-quality 0)
+  ETIKET="🎵 Ses"
+else
+  FORMAT_ARG=(-f "bv*[ext=mp4]+ba[ext=m4a]/bv*+ba/b" --merge-output-format mp4)
+  ETIKET="🎬 Video"
+fi
+
+echo "$ETIKET indiriliyor → $HEDEF"
+
+"$YTDLP" \
+  "${FORMAT_ARG[@]}" \
+  "${COOKIE_ARG[@]}" \
+  -o "$HEDEF/%(uploader,channel|indirilen)s - %(title).80B.%(ext)s" \
+  --restrict-filenames \
+  --no-playlist \
+  --embed-metadata \
+  --embed-thumbnail \
+  --no-mtime \
+  --progress \
+  "$LINK"
+
+KOD=$?
+
+if [ $KOD -eq 0 ]; then
+  SON=$(ls -t "$HEDEF" | head -1)
+  bildir "İndirildi ✓" "$SON"
+  echo "✓ Bitti: $HEDEF/$SON"
+  open "$HEDEF"
+else
+  bildir "İndir ✗" "Hata oldu — terminale bak"
+  echo "✗ İndirilemedi."
+  echo "  Instagram özel/giriş gerektiren bir gönderiyse çerez lazım:"
+  echo "  INDIR_COOKIE_BROWSER=safari indir \"$LINK\""
+fi
+
+exit $KOD
