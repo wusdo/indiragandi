@@ -28,16 +28,29 @@ ENV = dict(os.environ)
 ENV["PATH"] = FFMPEG_DIR + ":" + ENV.get("PATH", "")
 
 # ---------------------------------------------------------------- formatlar
+def _video_format(h):
+    """
+    Kurgu programları için format zinciri.
+    Önce H.264 (avc1) aranır — Premiere/AE/Resolve'de en akıcı codec.
+    Bulunamazsa (1440p+ genelde sadece VP9/AV1 olur) kaliteye düşülür.
+    """
+    zincir = (
+        "bv*[vcodec^=avc1][height<={h}]+ba[ext=m4a]/"
+        "bv*[vcodec^=avc1][height<={h}]+ba/"
+        "bv*[height<={h}][ext=mp4]+ba[ext=m4a]/"
+        "bv*[height<={h}]+ba/"
+        "b[height<={h}]"
+    ).format(h=h)
+    return ["-f", zincir, "--merge-output-format", "mp4"]
+
+
 FORMATLAR = {
-    "mp3":   ["-x", "--audio-format", "mp3", "--audio-quality", "0"],
-    "720":   ["-f", "bv*[height<=720][ext=mp4]+ba[ext=m4a]/bv*[height<=720]+ba/b[height<=720]",
-              "--merge-output-format", "mp4"],
-    "1080":  ["-f", "bv*[height<=1080][ext=mp4]+ba[ext=m4a]/bv*[height<=1080]+ba/b[height<=1080]",
-              "--merge-output-format", "mp4"],
-    "1440":  ["-f", "bv*[height<=1440][ext=mp4]+ba[ext=m4a]/bv*[height<=1440]+ba/b[height<=1440]",
-              "--merge-output-format", "mp4"],
-    "2160":  ["-f", "bv*[height<=2160][ext=mp4]+ba[ext=m4a]/bv*[height<=2160]+ba/b[height<=2160]",
-              "--merge-output-format", "mp4"],
+    # Sese kapak gömmek mantıklı, videoya değil (aşağıdaki nota bak)
+    "mp3":   ["-x", "--audio-format", "mp3", "--audio-quality", "0", "--embed-thumbnail"],
+    "720":   _video_format(720),
+    "1080":  _video_format(1080),
+    "1440":  _video_format(1440),
+    "2160":  _video_format(2160),
     "best":  ["-f", "bv*+ba/b", "--merge-output-format", "mp4"],
 }
 
@@ -94,10 +107,17 @@ def indir_calistir(iid, url, format_kodu, tarayici):
         "--restrict-filenames",
         "--no-playlist",
         "--embed-metadata",
-        "--embed-thumbnail",
+        # --embed-thumbnail videoya UYGULANMAZ: kapak, mp4 içine ikinci bir
+        # PNG "video" akışı olarak giriyor ve NLE'ler bunu yanlış yorumluyor.
+        # Sadece mp3'te var (bkz. FORMATLAR).
         "--no-mtime",
         "--newline",
         "--progress",
+        # Biten dosyanın yolunu tahmin etmek yerine yt-dlp'nin kendisinden al.
+        # (Aynı anda birden fazla indirme varsa "klasördeki en yeni dosya"
+        #  başka bir işin geçici ses parçasına denk gelebiliyordu.)
+        "--no-simulate",
+        "--print", "after_move:IGYOL|%(filepath)s",
         url,
     ]
 
@@ -113,11 +133,19 @@ def indir_calistir(iid, url, format_kodu, tarayici):
     son_satirlar = []
     parca = 0
     sadece_ses = format_kodu == "mp3"
+    gercek_yol = ""
+    bas_zaman = time.time()
 
     for satir in p.stdout:
         satir = satir.rstrip()
         if not satir:
             continue
+
+        # yt-dlp'nin bildirdiği kesin çıktı yolu
+        if satir.startswith("IGYOL|"):
+            gercek_yol = satir[6:].strip()
+            continue
+
         son_satirlar.append(satir)
         son_satirlar[:] = son_satirlar[-25:]
 
@@ -152,15 +180,25 @@ def indir_calistir(iid, url, format_kodu, tarayici):
     p.wait()
 
     if p.returncode == 0:
-        dosya, tam_yol = "", ""
-        try:
-            adaylar = [os.path.join(HEDEF, f) for f in os.listdir(HEDEF)
-                       if not f.startswith(".")]
-            if adaylar:
-                tam_yol = max(adaylar, key=os.path.getmtime)
-                dosya = os.path.basename(tam_yol)
-        except Exception:
-            pass
+        tam_yol = gercek_yol if (gercek_yol and os.path.exists(gercek_yol)) else ""
+
+        if not tam_yol:
+            # Yedek plan: yalnızca BU iş başladıktan sonra oluşmuş,
+            # tamamlanmış (ara parça olmayan) dosyalara bak.
+            try:
+                adaylar = []
+                for f in os.listdir(HEDEF):
+                    if f.startswith(".") or ".f" in f.rsplit(".", 2)[0][-6:]:
+                        continue
+                    p2 = os.path.join(HEDEF, f)
+                    if os.path.getmtime(p2) >= bas_zaman - 1:
+                        adaylar.append(p2)
+                if adaylar:
+                    tam_yol = max(adaylar, key=os.path.getmtime)
+            except Exception:
+                pass
+
+        dosya = os.path.basename(tam_yol) if tam_yol else ""
         is_guncelle(iid, durum="bitti", yuzde=100, asama="Tamam",
                     dosya=dosya, yol=tam_yol)
     else:

@@ -252,8 +252,9 @@ $("#tekrarBtn").onclick = sunucuKontrol;
 
 /* ---- seçenekler ---- */
 $("#formatlar").addEventListener("click", function(e){
-  var b = e.target; while(b && !b.classList.contains("fbtn")) b = b.parentNode;
-  if(!b) return;
+  var b = e.target;
+  while(b && b.nodeType === 1 && !b.classList.contains("fbtn")) b = b.parentNode;
+  if(!b || b.nodeType !== 1 || !b.classList.contains("fbtn")) return;
   var hepsi = document.querySelectorAll(".fbtn");
   for(var i=0;i<hepsi.length;i++) hepsi[i].classList.remove("sec");
   b.classList.add("sec"); format = b.getAttribute("data-f"); bip(880,.04);
