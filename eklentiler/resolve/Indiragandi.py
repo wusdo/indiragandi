@@ -147,6 +147,17 @@ pencere = disp.AddWindow({
         ui.ComboBox({"ID": "Kalite", "Weight": 0}),
 
         ui.VGap(4),
+        ui.CheckBox({"ID": "Kes", "Text": "Aralık kes — sadece istediğin bölümü indir",
+                     "Checked": False, "Weight": 0}),
+        ui.HGroup({"Weight": 0, "Spacing": 6}, [
+            ui.LineEdit({"ID": "Bas", "PlaceholderText": "0:00", "Enabled": False}),
+            ui.Label({"ID": "Ok", "Text": "→", "Weight": 0}),
+            ui.LineEdit({"ID": "Bit", "PlaceholderText": "son", "Enabled": False}),
+            ui.CheckBox({"ID": "TamKare", "Text": "tam kare", "Checked": False,
+                         "Enabled": False, "Weight": 0}),
+        ]),
+
+        ui.VGap(4),
         ui.CheckBox({"ID": "MediaPool", "Text": "Media Pool'a otomatik ekle",
                      "Checked": True, "Weight": 0}),
         ui.CheckBox({"ID": "Timeline", "Text": "Aktif timeline'a da ekle",
@@ -252,7 +263,8 @@ def bilgi_al(link):
         it["Bilgi"].Text = "Motor kapalı"
 
 
-def indir_isi(link, format_kodu, cerez, mp_ekle, tl_ekle):
+def indir_isi(link, format_kodu, cerez, mp_ekle, tl_ekle,
+              bas=None, bit=None, tam_kare=False):
     try:
         if not motoru_baslat():
             durum("✗ Motor başlatılamadı")
@@ -260,7 +272,12 @@ def indir_isi(link, format_kodu, cerez, mp_ekle, tl_ekle):
                      "Dock'taki İndiragandi uygulamasını bir kez aç.")
             return
 
-        d = istek("/api/indir", {"url": link, "format": format_kodu, "cerez": cerez})
+        govde = {"url": link, "format": format_kodu, "cerez": cerez}
+        if bas is not None or bit is not None:
+            govde["bas"] = "" if bas is None else str(bas)
+            govde["bit"] = "" if bit is None else str(bit)
+            govde["tam_kare"] = bool(tam_kare)
+        d = istek("/api/indir", govde)
         iid = d.get("id")
         if not iid:
             durum("✗ Başlatılamadı")
@@ -301,6 +318,30 @@ def indir_isi(link, format_kodu, cerez, mp_ekle, tl_ekle):
         it["Indir"].Enabled = True
 
 
+def kes_degisti(ev):
+    """Aralık kutusu açılınca zaman alanlarını etkinleştir."""
+    acik = it["Kes"].Checked
+    for k in ("Bas", "Bit", "TamKare"):
+        it[k].Enabled = acik
+
+
+def zaman_sn(metin):
+    """'1:30' → 90.0   Boş/geçersiz → None"""
+    metin = (metin or "").strip().replace(",", ".")
+    if not metin:
+        return None
+    try:
+        parcalar = [float(p) for p in metin.split(":")]
+    except ValueError:
+        return False          # okunamadı
+    if any(p < 0 for p in parcalar):
+        return False
+    toplam = 0.0
+    for p in parcalar:
+        toplam = toplam * 60 + p
+    return toplam
+
+
 def indir_tikla(ev):
     if calisiyor[0]:
         return
@@ -308,6 +349,17 @@ def indir_tikla(ev):
     if not link.startswith("http"):
         durum("✗ Geçerli link yok")
         return
+
+    bas = bit = None
+    if it["Kes"].Checked:
+        bas, bit = zaman_sn(it["Bas"].Text), zaman_sn(it["Bit"].Text)
+        if bas is False or bit is False:
+            durum("✗ Zaman okunamadı — örnek: 1:30")
+            return
+        if bas is not None and bit is not None and bit <= bas:
+            durum("✗ Bitiş, başlangıçtan büyük olmalı")
+            return
+
     calisiyor[0] = True
     it["Indir"].Enabled = False
     hata_yaz("")
@@ -319,7 +371,8 @@ def indir_tikla(ev):
               KALITELER[it["Kalite"].CurrentIndex][0],
               CEREZLER[it["Cerez"].CurrentIndex][0],
               it["MediaPool"].Checked,
-              it["Timeline"].Checked),
+              it["Timeline"].Checked,
+              bas, bit, it["TamKare"].Checked),
         daemon=True,
     ).start()
 
@@ -348,6 +401,7 @@ def kapat(ev):
     disp.ExitLoop()
 
 
+pencere.On.Kes.Clicked = kes_degisti
 pencere.On.PanoBtn.Clicked = pano_tikla
 pencere.On.Indir.Clicked = indir_tikla
 pencere.On.KlasorBtn.Clicked = klasor_tikla

@@ -118,6 +118,32 @@ button:disabled{opacity:.4;cursor:not-allowed;transform:none}
   content:"";position:absolute;left:6px;top:6px;width:5px;height:5px;background:var(--yellow)
 }
 
+/* ---- onay kutusu ---- */
+.secenek{display:flex;align-items:center;gap:9px;margin-top:14px;cursor:pointer;
+  font-size:9px;color:var(--dim);user-select:none}
+.kutu{width:16px;height:16px;flex:0 0 auto;background:var(--bg2);
+  box-shadow:0 0 0 2px var(--brd2) inset;position:relative}
+.secenek.acik .kutu{background:var(--cyan)}
+.secenek.acik .kutu::after{content:"";position:absolute;inset:4px;background:var(--bg)}
+.secenek.acik{color:var(--cyan)}
+
+/* ---- aralık kes ---- */
+#kesAlan{display:none;margin-top:12px;padding:14px;background:var(--bg2);
+  box-shadow:0 0 0 var(--px) var(--brd2) inset}
+#kesAlan.acik{display:block}
+.kesSatir{display:flex;align-items:center;gap:12px}
+.kesSatir input{
+  flex:1;min-width:0;background:var(--panel);border:0;outline:0;color:var(--yellow);
+  font-family:inherit;font-size:18px;text-align:center;letter-spacing:2px;padding:12px 6px;
+  box-shadow:0 0 0 3px var(--brd2) inset;
+}
+.kesSatir input:focus{box-shadow:0 0 0 3px var(--cyan) inset}
+.kesSatir input::placeholder{color:#544a86;letter-spacing:1px}
+.kesSatir .ok{color:var(--pink);font-size:16px;flex:0 0 auto}
+.kesIpucu{color:var(--dim);font-size:8px;margin-top:9px;text-align:center;line-height:1.8}
+.kesIpucu.uyari{color:var(--red)}
+#kesAlan .secenek{margin-top:10px;font-size:8px}
+
 /* ---- büyük indir ---- */
 #indirBtn{
   width:100%;margin-top:18px;padding:18px;font-size:14px;letter-spacing:3px;
@@ -211,6 +237,17 @@ select{
       <button class="fbtn px" data-f="2160"><span class="ust">4K</span><span class="alt">2160p</span></button>
       <button class="fbtn px" data-f="best"><span class="ust">MAX</span><span class="alt">EN IYISI</span></button>
     </div>
+    <div class="secenek" id="secKes"><span class="kutu"></span><span>ARALIK KES — sadece istediğin bölümü indir</span></div>
+    <div id="kesAlan">
+      <div class="kesSatir">
+        <input type="text" id="bas" placeholder="0:00" spellcheck="false">
+        <span class="ok">→</span>
+        <input type="text" id="bit" placeholder="son" spellcheck="false">
+      </div>
+      <div class="kesIpucu" id="kesIpucu">dk:sn yaz — bitişi boş bırakırsan videonun sonuna kadar iner</div>
+      <div class="secenek" id="secTamKare"><span class="kutu"></span><span>TAM KARE — istenen karede keser, yavaş (yeniden kodlar)</span></div>
+    </div>
+
     <button id="indirBtn">▼ INDIR ▼</button>
   </section>
 
@@ -312,6 +349,52 @@ $("#formatlar").addEventListener("click", e=>{
   b.classList.add("sec"); format = b.dataset.f; bip(880,.04);
 });
 
+/* ---- aralık kes ---- */
+function ikili(id){
+  const el = $(id);
+  el.onclick = ()=>{ el.classList.toggle("acik"); bip(660,.03); };
+  return ()=> el.classList.contains("acik");
+}
+const kesAcik = ikili("#secKes");
+const tamKare = ikili("#secTamKare");
+$("#secKes").addEventListener("click", ()=>{
+  $("#kesAlan").className = kesAcik() ? "acik" : "";
+});
+
+function zamanSn(m){
+  m = (m||"").trim().replace(",",".");
+  if(!m) return null;
+  let t = 0;
+  for(const p of m.split(":")){
+    const s = parseFloat(p);
+    if(isNaN(s) || s < 0) return null;
+    t = t*60 + s;
+  }
+  return t;
+}
+const sureYaz = sn => Math.floor(sn/60) + ":" + String(Math.floor(sn%60)).padStart(2,"0");
+let toplamSure = 0;
+
+function araligiDenetle(){
+  if(!kesAcik()) return true;
+  const b = zamanSn($("#bas").value), e = zamanSn($("#bit").value);
+  const ip = $("#kesIpucu");
+  const uyar = m => { ip.className = "kesIpucu uyari"; ip.textContent = m; return false; };
+  if($("#bas").value.trim() && b === null) return uyar("Başlangıç okunamadı — örnek: 1:30");
+  if($("#bit").value.trim() && e === null) return uyar("Bitiş okunamadı — örnek: 2:00");
+  if(b !== null && e !== null && e <= b)   return uyar("Bitiş, başlangıçtan büyük olmalı");
+  if(toplamSure && e !== null && e > toplamSure)
+    return uyar("Video " + sureYaz(toplamSure) + " uzunluğunda — bitiş bunu aşıyor");
+  ip.className = "kesIpucu";
+  ip.textContent = (b !== null || e !== null)
+    ? "kesilecek: " + sureYaz(b||0) + " → " + (e !== null ? sureYaz(e) : "son")
+      + (e !== null ? "   (" + sureYaz(e-(b||0)) + " uzunluk)" : "")
+    : "dk:sn yaz — bitişi boş bırakırsan videonun sonuna kadar iner";
+  return true;
+}
+$("#bas").addEventListener("input", araligiDenetle);
+$("#bit").addEventListener("input", araligiDenetle);
+
 /* ---- pano ---- */
 $("#panoBtn").onclick = async ()=>{
   try{
@@ -345,6 +428,8 @@ async function bilgiGetir(){
       $("#bilgiAlt").textContent = "";
       return;
     }
+    toplamSure = d.sure || 0;
+    araligiDenetle();
     $("#bilgiBaslik").textContent = d.baslik;
     const dk = d.sure ? Math.floor(d.sure/60)+":"+String(Math.floor(d.sure%60)).padStart(2,"0") : "";
     $("#bilgiAlt").textContent = [d.site, d.kanal, dk].filter(Boolean).join("  ·  ");
@@ -360,6 +445,7 @@ $("#indirBtn").onclick = basla;
 async function basla(){
   const u = url.value.trim();
   if(!u.startsWith("http")){ url.focus(); bip(160,.15); return; }
+  if(!araligiDenetle()){ bip(160,.15); return; }
   $("#indirBtn").disabled = true;
   $("#ilerleme").classList.add("acik");
   $("#hataKutu").classList.remove("acik");
@@ -367,8 +453,14 @@ async function basla(){
   $("#asama").textContent = "Başlatılıyor...";
   ciz(0);
   try{
+    const govde = {url:u, format:format, cerez:$("#cerez").value};
+    if(kesAcik()){
+      govde.bas = $("#bas").value.trim();
+      govde.bit = $("#bit").value.trim();
+      govde.tam_kare = tamKare();
+    }
     const r = await fetch("/api/indir",{method:"POST",headers:{"Content-Type":"application/json"},
-      body:JSON.stringify({url:u,format:format,cerez:$("#cerez").value})});
+      body:JSON.stringify(govde)});
     const d = await r.json();
     if(!d.id) throw new Error(d.hata||"Başlatılamadı");
     isID = d.id;

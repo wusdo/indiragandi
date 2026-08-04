@@ -87,6 +87,20 @@ button:disabled{opacity:.4;cursor:not-allowed;transform:none}
 .secenek.acik .kutu{background:var(--cyan)}
 .secenek.acik .kutu::after{content:"";position:absolute;inset:3px;background:var(--bg)}
 .secenek.acik{color:var(--cyan)}
+#kesAlan{display:none;margin-top:9px;padding:9px;background:var(--bg2);box-shadow:0 0 0 var(--px) var(--brd2) inset}
+#kesAlan.acik{display:block}
+.kesSatir{display:flex;align-items:center;gap:7px}
+.kesSatir input{
+  flex:1;min-width:0;background:var(--panel);border:0;outline:0;color:var(--yellow);
+  font-family:inherit;font-size:12px;text-align:center;padding:8px 4px;
+  box-shadow:0 0 0 2px var(--brd2) inset;
+}
+.kesSatir input:focus{box-shadow:0 0 0 2px var(--cyan) inset}
+.kesSatir input::placeholder{color:#544a86}
+.kesSatir .ok{color:var(--pink);font-size:12px;flex:0 0 auto}
+.kesIpucu{color:var(--dim);font-size:7px;margin-top:5px;text-align:center}
+.kesIpucu.uyari{color:var(--red)}
+#kesAlan .secenek{margin-top:7px;font-size:7px}
 #ilerleme{display:none}
 #ilerleme.acik{display:block}
 .bar{display:flex;gap:2px;margin:9px 0}
@@ -150,6 +164,17 @@ select{
     <button class="fbtn px" data-f="1440"><span class="ust">1440</span><span class="alt">2K</span></button>
     <button class="fbtn px" data-f="2160"><span class="ust">4K</span><span class="alt">2160</span></button>
     <button class="fbtn px" data-f="best"><span class="ust">MAX</span><span class="alt">EN IYI</span></button>
+  </div>
+
+  <div class="secenek" id="secKes"><span class="kutu"></span><span>ARALIK KES</span></div>
+  <div id="kesAlan">
+    <div class="kesSatir">
+      <input type="text" id="bas" placeholder="0:00" spellcheck="false">
+      <span class="ok">→</span>
+      <input type="text" id="bit" placeholder="son" spellcheck="false">
+    </div>
+    <div class="kesIpucu" id="kesIpucu">dk:sn — bitişi boş bırakırsan sona kadar</div>
+    <div class="secenek" id="secTamKare"><span class="kutu"></span><span>TAM KARE (yavaş, yeniden kodlar)</span></div>
   </div>
 
   <div class="secenek acik" id="secProje"><span class="kutu"></span><span>PROJEYE OTOMATIK AKTAR</span></div>
@@ -266,6 +291,48 @@ function ikili(id){
 }
 var projeyeAktar = ikili("#secProje");
 var timelineKoy  = ikili("#secTimeline");
+var kesAcik      = ikili("#secKes");
+var tamKare      = ikili("#secTamKare");
+
+$("#secKes").addEventListener("click", function(){
+  $("#kesAlan").className = kesAcik() ? "acik" : "";
+});
+
+/* '1:30' → 90 sn.  Geçersizse null */
+function zamanSn(m){
+  m = (m||"").trim().replace(",",".");
+  if(!m) return null;
+  var p = m.split(":"), t = 0;
+  for(var i=0;i<p.length;i++){
+    var s = parseFloat(p[i]);
+    if(isNaN(s) || s < 0) return null;
+    t = t*60 + s;
+  }
+  return t;
+}
+function sureYaz(sn){
+  sn = Math.floor(sn);
+  var d = Math.floor(sn/60), s = sn%60;
+  return d + ":" + (s<10?"0":"") + s;
+}
+var toplamSure = 0;
+
+function araligiDenetle(){
+  if(!kesAcik()) return true;
+  var b = zamanSn($("#bas").value), e = zamanSn($("#bit").value);
+  var ip = $("#kesIpucu");
+  if($("#bas").value.trim() && b === null){ ip.className="kesIpucu uyari"; ip.textContent="Başlangıç okunamadı (örn 1:30)"; return false; }
+  if($("#bit").value.trim() && e === null){ ip.className="kesIpucu uyari"; ip.textContent="Bitiş okunamadı (örn 2:00)"; return false; }
+  if(b !== null && e !== null && e <= b){ ip.className="kesIpucu uyari"; ip.textContent="Bitiş, başlangıçtan büyük olmalı"; return false; }
+  if(toplamSure && e !== null && e > toplamSure){ ip.className="kesIpucu uyari"; ip.textContent="Video "+sureYaz(toplamSure)+" — bitiş bunu aşıyor"; return false; }
+  ip.className = "kesIpucu";
+  ip.textContent = (b!==null||e!==null)
+    ? "kesilecek: " + sureYaz(b||0) + " → " + (e!==null?sureYaz(e):"son")
+    : "dk:sn — bitişi boş bırakırsan sona kadar";
+  return true;
+}
+$("#bas").addEventListener("input", araligiDenetle);
+$("#bit").addEventListener("input", araligiDenetle);
 
 /* ---- pano (sunucu üzerinden pbpaste) ---- */
 $("#panoBtn").onclick = function(){
@@ -293,6 +360,8 @@ function bilgiGetir(){
   .then(function(r){ return r.json(); })
   .then(function(d){
     if(d.hata){ $("#bilgiBaslik").textContent = "Bilgi alınamadı (yine de dene)"; return; }
+    toplamSure = d.sure || 0;
+    araligiDenetle();
     $("#bilgiBaslik").textContent = d.baslik;
     var dk = d.sure ? Math.floor(d.sure/60)+":"+String(Math.floor(d.sure%60)).padStart(2,"0") : "";
     $("#bilgiAlt").textContent = [d.site,d.kanal,dk].filter(Boolean).join("  ·  ");
@@ -306,14 +375,21 @@ $("#indirBtn").onclick = basla;
 function basla(){
   var u = url.value.replace(/\s/g,"");
   if(u.indexOf("http")!==0){ url.focus(); bip(160,.15); return; }
+  if(!araligiDenetle()){ bip(160,.15); return; }
   $("#indirBtn").disabled = true;
   $("#ilerleme").classList.add("acik");
   $("#hataKutu").classList.remove("acik");
   $("#dosyaAd").textContent = "";
   $("#asama").textContent = "Başlatılıyor...";
   ciz(0);
+  var govde = {url:u, format:format, cerez:$("#cerez").value};
+  if(kesAcik()){
+    govde.bas = $("#bas").value.trim();
+    govde.bit = $("#bit").value.trim();
+    govde.tam_kare = tamKare();
+  }
   fetch(API+"/api/indir",{method:"POST",headers:{"Content-Type":"application/json"},
-    body:JSON.stringify({url:u,format:format,cerez:$("#cerez").value})})
+    body:JSON.stringify(govde)})
   .then(function(r){ return r.json(); })
   .then(function(d){
     if(!d.id) throw new Error(d.hata||"Başlatılamadı");

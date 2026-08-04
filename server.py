@@ -62,6 +62,35 @@ HIZ = re.compile(r"at\s+([\d.]+\w+/s)")
 ETA = re.compile(r"ETA\s+([\d:]+)")
 
 
+def zaman_sn(metin):
+    """
+    '90'  '1:30'  '01:30'  '1:02:03'  '1.5'  →  saniye (float)
+    Boş / anlamsız → None
+    """
+    if metin is None:
+        return None
+    metin = str(metin).strip().replace(",", ".")
+    if not metin:
+        return None
+    try:
+        parcalar = [float(p) for p in metin.split(":")]
+    except ValueError:
+        return None
+    if not parcalar or any(p < 0 for p in parcalar):
+        return None
+    toplam = 0.0
+    for p in parcalar:                      # ss / dd:ss / ss:dd:ss
+        toplam = toplam * 60 + p
+    return toplam
+
+
+def sn_etiket(sn):
+    """125.0 → '2m05s'  (dosya adına güvenle giren biçim)"""
+    sn = int(round(sn))
+    s, d, sa = sn % 60, (sn // 60) % 60, sn // 3600
+    return ("%dh%02dm%02ds" % (sa, d, s)) if sa else ("%dm%02ds" % (d, s))
+
+
 def is_guncelle(iid, **kw):
     with ISLER_KILIT:
         if iid in ISLER:
@@ -98,12 +127,34 @@ def bilgi_getir(url, tarayici=None):
         return {"hata": [str(e)]}
 
 
-def indir_calistir(iid, url, format_kodu, tarayici):
+def indir_calistir(iid, url, format_kodu, tarayici,
+                   bas=None, bit=None, tam_kare=False):
     cmd = [YTDLP]
     cmd += FORMATLAR.get(format_kodu, FORMATLAR["best"])
     cmd += cerez_argumani(tarayici)
+
+    # --- istenen aralık ---
+    bas_sn, bit_sn = zaman_sn(bas), zaman_sn(bit)
+    kesme_eki = ""
+    if bas_sn is not None or bit_sn is not None:
+        b = bas_sn if bas_sn is not None else 0.0
+        e = bit_sn if bit_sn is not None else None
+        if e is not None and e <= b:
+            is_guncelle(iid, durum="hata",
+                        hata="Bitiş zamanı başlangıçtan büyük olmalı")
+            return
+        cmd += ["--download-sections",
+                "*%s-%s" % (b, e if e is not None else "inf")]
+        if tam_kare:
+            # Tam istenen karede keser; kesim çevresini yeniden kodlar (yavaş).
+            cmd += ["--force-keyframes-at-cuts"]
+        kesme_eki = " [%s-%s]" % (sn_etiket(b),
+                                  sn_etiket(e) if e is not None else "son")
+
     cmd += [
-        "-o", os.path.join(HEDEF, "%(uploader,channel|indirilen)s - %(title).80B.%(ext)s"),
+        "-o", os.path.join(HEDEF,
+                           "%(uploader,channel|indirilen)s - %(title).80B"
+                           + kesme_eki + ".%(ext)s"),
         "--restrict-filenames",
         "--no-playlist",
         "--embed-metadata",
@@ -307,7 +358,9 @@ class Handler(BaseHTTPRequestHandler):
                               "baslangic": time.time()}
             t = threading.Thread(target=indir_calistir,
                                  args=(iid, url, veri.get("format", "1080"),
-                                       veri.get("cerez")),
+                                       veri.get("cerez"),
+                                       veri.get("bas"), veri.get("bit"),
+                                       bool(veri.get("tam_kare"))),
                                  daemon=True)
             t.start()
             self._gonder(200, {"id": iid})
