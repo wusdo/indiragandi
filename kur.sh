@@ -48,6 +48,7 @@ fi
 # ---------------------------------------------- 3. motor + arayüz
 echo "[3/6] Motor ve panel kopyalanıyor..."
 cp "$KAYNAK/server.py" "$KAYNAK/ui.html" "$UYG/"
+[ -f "$KAYNAK/docs/index.html" ] && cp "$KAYNAK/docs/index.html" "$UYG/tanitim.html"
 cp "$KAYNAK/cli/indir" "$KAYNAK/cli/gandi" "$BIN/"
 chmod +x "$BIN/indir" "$BIN/gandi"
 echo "      ✓ $UYG"

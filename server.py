@@ -300,6 +300,15 @@ class Handler(BaseHTTPRequestHandler):
                 self._gonder(200, ISLER.get(iid, {"durum": "yok"}))
             return
 
+        if yol.path in ("/tanitim", "/tanitim/", "/tanitim.html"):
+            try:
+                with open(os.path.join(BASE, "tanitim.html"), "rb") as f:
+                    self._gonder(200, f.read(), "text/html; charset=utf-8")
+            except FileNotFoundError:
+                self._gonder(404, b"tanitim.html kurulu degil",
+                             "text/plain; charset=utf-8")
+            return
+
         if yol.path == "/api/pano":
             try:
                 metin = subprocess.run(["pbpaste"], capture_output=True,

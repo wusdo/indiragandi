@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>İNDİRAGANDİ — Premiere, After Effects ve DaVinci için video indirici</title>
+<meta name="description" content="YouTube, Instagram, Vimeo ve 1000+ siteden video indirip doğrudan Premiere Pro, After Effects veya DaVinci Resolve projene atan pixel art temalı Mac aracı.">
+<meta property="og:title" content="İNDİRAGANDİ">
+<meta property="og:description" content="İndir, kurguya düşsün. Premiere · After Effects · DaVinci Resolve eklentisi.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Crect width='16' height='16' fill='%230d0a18'/%3E%3Crect x='2' y='3' width='12' height='12' fill='%236b4ea8'/%3E%3Crect x='4' y='5' width='8' height='7' fill='%234deeea'/%3E%3Crect x='7' y='6' width='2' height='3' fill='%23ff3d81'/%3E%3Crect x='5' y='9' width='6' height='1' fill='%23ff3d81'/%3E%3Crect x='6' y='10' width='4' height='1' fill='%23ff3d81'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#0d0a18; --bg2:#151027; --panel:#1e1838; --panel2:#282050;
+  --brd:#5a4a9e; --brd2:#3a2f6b;
+  --pink:#ff3d81; --cyan:#4deeea; --green:#74ee15; --yellow:#ffe700; --red:#ff4757;
+  --txt:#e9e6ff; --dim:#8b82c4; --px:4px;
+  --mono:"Press Start 2P",Monaco,"Courier New",monospace;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  background:var(--bg);
+  background-image:
+    linear-gradient(rgba(90,74,158,.06) 1px,transparent 1px),
+    linear-gradient(90deg,rgba(90,74,158,.06) 1px,transparent 1px);
+  background-size:20px 20px;
+  color:var(--txt);
+  font-family:var(--mono);
+  font-size:12px;line-height:2;letter-spacing:.4px;
+  -webkit-font-smoothing:none;
+  overflow-x:hidden;
+}
+body::after{
+  content:"";position:fixed;inset:0;pointer-events:none;z-index:200;
+  background:repeating-linear-gradient(180deg,rgba(0,0,0,.15) 0 1px,transparent 1px 3px);
+  mix-blend-mode:multiply;
+}
+img,canvas{image-rendering:pixelated}
+a{color:var(--cyan);text-decoration:none}
+a:hover{color:var(--yellow)}
+.kap{max-width:960px;margin:0 auto;padding:0 20px}
+section{padding:70px 0;position:relative}
+.px{background:var(--panel);
+  box-shadow:
+    0 calc(var(--px)*-1) 0 0 var(--brd), 0 var(--px) 0 0 var(--brd),
+    calc(var(--px)*-1) 0 0 0 var(--brd), var(--px) 0 0 0 var(--brd),
+    0 0 0 var(--px) var(--brd2) inset;}
+h2{font-size:20px;line-height:1.6;letter-spacing:1px;font-weight:400;color:var(--yellow);
+  margin-bottom:10px;text-shadow:3px 3px 0 #000}
+h2 .no{color:var(--pink)}
+.altbaslik{color:var(--dim);font-size:10px;margin-bottom:34px;line-height:2}
+
+/* ---------- ÜST BAR ---------- */
+nav{position:sticky;top:0;z-index:150;background:rgba(13,10,24,.94);
+  border-bottom:3px solid var(--brd2);backdrop-filter:blur(4px)}
+nav .kap{display:flex;align-items:center;gap:16px;padding-top:12px;padding-bottom:12px;flex-wrap:wrap}
+nav canvas{width:26px;height:26px}
+nav .ad{color:var(--yellow);font-size:12px;letter-spacing:1px;margin-right:auto}
+nav a.lnk{font-size:9px;color:var(--dim)}
+nav a.lnk:hover{color:var(--cyan)}
+
+/* ---------- HERO ---------- */
+.hero{padding:70px 0 50px;text-align:center}
+#heroSprite{width:132px;height:132px;margin-bottom:22px}
+h1{font-size:clamp(26px,7vw,52px);line-height:1.25;letter-spacing:3px;font-weight:400;
+  color:var(--yellow);
+  text-shadow:4px 0 0 var(--pink),0 4px 0 var(--pink),4px 4px 0 #000,10px 10px 0 rgba(0,0,0,.45)}
+.slogan{color:var(--cyan);font-size:clamp(10px,2.4vw,14px);margin-top:22px;line-height:2}
+.slogan b{color:var(--txt)}
+.rozetler{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-top:26px}
+.rozet{font-size:8px;color:var(--dim);padding:7px 11px;background:var(--bg2);
+  box-shadow:0 0 0 2px var(--brd2) inset}
+.rozet b{color:var(--green)}
+.ctalar{display:flex;gap:16px;justify-content:center;flex-wrap:wrap;margin-top:34px}
+
+/* ---------- BUTON ---------- */
+.btn{display:inline-block;font-family:var(--mono);font-size:11px;letter-spacing:1.5px;
+  color:var(--txt);background:var(--panel2);border:0;cursor:pointer;padding:16px 22px;
+  text-transform:uppercase;
+  box-shadow:0 -4px 0 0 var(--brd),0 4px 0 0 var(--brd),
+             -4px 0 0 0 var(--brd),4px 0 0 0 var(--brd),0 8px 0 0 rgba(0,0,0,.5)}
+.btn:hover{background:var(--brd2);color:var(--yellow)}
+.btn:active{transform:translateY(4px);
+  box-shadow:0 -4px 0 0 var(--brd),0 4px 0 0 var(--brd),
+             -4px 0 0 0 var(--brd),4px 0 0 0 var(--brd)}
+.btn.ana{background:var(--green);color:#0d0a18}
+.btn.ana:hover{background:var(--yellow);color:#0d0a18}
+.btn.kucuk{font-size:9px;padding:11px 14px;
+  box-shadow:0 -3px 0 0 var(--brd),0 3px 0 0 var(--brd),
+             -3px 0 0 0 var(--brd),3px 0 0 0 var(--brd),0 6px 0 0 rgba(0,0,0,.5)}
+.btn.kucuk:active{transform:translateY(3px);
+  box-shadow:0 -3px 0 0 var(--brd),0 3px 0 0 var(--brd),
+             -3px 0 0 0 var(--brd),3px 0 0 0 var(--brd)}
+.btn:disabled{opacity:.4;cursor:not-allowed;transform:none}
+
+/* ---------- ÖZELLİKLER ---------- */
+.izgara{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:20px}
+.kart{padding:22px}
+.kart .ikon{font-size:22px;line-height:1;margin-bottom:14px;display:block}
+.kart h3{color:var(--cyan);font-size:11px;font-weight:400;letter-spacing:.5px;margin-bottom:10px}
+.kart p{color:var(--dim);font-size:9px;line-height:2.1}
+.kart p b{color:var(--txt)}
+
+/* ---------- KURULUM ---------- */
+.terminal{background:#080610;padding:0;margin:0 0 18px;
+  box-shadow:0 0 0 3px var(--brd2) inset;position:relative;overflow:hidden}
+.termbar{display:flex;align-items:center;gap:7px;padding:10px 12px;background:var(--panel);
+  border-bottom:3px solid var(--brd2)}
+.lamba{width:11px;height:11px;flex:0 0 auto}
+.l1{background:#ff5f57}.l2{background:#febc2e}.l3{background:#28c840}
+.termbar span{font-size:8px;color:var(--dim);margin-left:6px}
+.termgovde{padding:18px;overflow-x:auto}
+.termgovde pre{font-family:var(--mono);font-size:11px;line-height:2.2;color:var(--green);white-space:pre}
+.termgovde .yorum{color:#544a86}
+.kopyala{position:absolute;top:9px;right:9px;z-index:2}
+.adimlar{counter-reset:adim;display:grid;gap:14px;margin-top:26px}
+.adim{display:flex;gap:16px;align-items:flex-start;padding:16px}
+.adim .sayi{flex:0 0 auto;width:30px;height:30px;background:var(--pink);color:#fff;
+  display:flex;align-items:center;justify-content:center;font-size:12px}
+.adim .metin{font-size:10px;color:var(--dim);line-height:2}
+.adim .metin b{color:var(--txt);display:block;margin-bottom:3px;font-size:10px}
+
+/* ---------- NLE SEKMELERİ ---------- */
+.sekmeler{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:26px}
+.sekme{flex:1;min-width:150px;text-align:center;padding:16px 10px;cursor:pointer;
+  font-family:var(--mono);font-size:10px;color:var(--dim);background:var(--panel);border:0;
+  box-shadow:0 0 0 3px var(--brd2) inset}
+.sekme .uy{display:block;font-size:16px;margin-bottom:8px;color:var(--brd)}
+.sekme:hover{color:var(--txt)}
+.sekme.sec{background:var(--pink);color:#fff;box-shadow:0 0 0 3px var(--yellow) inset}
+.sekme.sec .uy{color:#fff}
+
+.nleKutu{padding:24px}
+.nleUst{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;margin-bottom:18px}
+.nleUst h3{color:var(--yellow);font-size:14px;font-weight:400;letter-spacing:1px}
+.nleUst .yol{color:var(--dim);font-size:9px}
+.nleIcerik{display:grid;grid-template-columns:1fr 1fr;gap:24px;align-items:start}
+@media(max-width:760px){.nleIcerik{grid-template-columns:1fr}}
+.nleAdimlar{display:grid;gap:10px}
+.nleAdim{display:flex;gap:12px;align-items:flex-start;padding:12px;background:var(--bg2);
+  box-shadow:0 0 0 2px var(--brd2) inset;cursor:pointer;transition:none}
+.nleAdim.aktif{box-shadow:0 0 0 2px var(--cyan) inset;background:var(--panel2)}
+.nleAdim .n{flex:0 0 auto;width:22px;height:22px;background:var(--brd2);color:var(--txt);
+  display:flex;align-items:center;justify-content:center;font-size:10px}
+.nleAdim.aktif .n{background:var(--cyan);color:#0d0a18}
+.nleAdim .t{font-size:9px;color:var(--dim);line-height:1.9}
+.nleAdim .t b{color:var(--txt);display:block}
+
+/* ---------- SAHTE UYGULAMA PENCERESİ ---------- */
+.mock{background:#0a0814;box-shadow:0 0 0 3px var(--brd2) inset;overflow:hidden;
+  min-height:250px;position:relative}
+.mockbar{display:flex;align-items:center;gap:7px;padding:9px 11px;background:#1a1526;
+  border-bottom:2px solid #2b2340}
+.mockbar .ad{font-size:8px;color:var(--dim);margin-left:8px}
+.mockmenu{display:flex;gap:2px;padding:6px 8px;background:#141020;
+  border-bottom:2px solid #2b2340;font-size:8px;color:var(--dim);flex-wrap:wrap}
+.mockmenu span{padding:4px 7px}
+.mockmenu span.vurgu{background:var(--pink);color:#fff}
+.mockalan{position:relative;height:210px;display:flex}
+.mockSol{flex:1;padding:12px;display:grid;gap:6px;align-content:start}
+.serit{height:11px;background:#181328}
+.serit.g{background:#1d2a18}.serit.m{background:#2a1826}
+.mockPanel{width:118px;flex:0 0 auto;background:var(--panel);border-left:3px solid var(--brd);
+  padding:10px 8px;transform:translateX(130%);transition:transform .45s steps(6)}
+.mockPanel.acik{transform:translateX(0)}
+.mockPanel .pb{font-size:7px;color:var(--yellow);text-align:center;margin-bottom:8px}
+.mockPanel .pi{height:9px;background:var(--bg2);margin-bottom:5px}
+.mockPanel .pbtn{height:15px;background:var(--green);margin-top:8px}
+.acilirMenu{position:absolute;left:52px;top:0;background:#1a1526;
+  box-shadow:0 0 0 2px var(--brd) inset;padding:5px 0;min-width:132px;font-size:8px;z-index:5;
+  display:none}
+.acilirMenu.gor{display:block}
+.acilirMenu i{display:block;padding:5px 11px;color:var(--dim);font-style:normal}
+.acilirMenu i.vurgu{background:var(--cyan);color:#0d0a18}
+.altMenu{position:absolute;left:100%;top:22px;background:#1a1526;
+  box-shadow:0 0 0 2px var(--brd) inset;padding:5px 0;min-width:118px;display:none}
+.altMenu.gor{display:block}
+.imlec{position:absolute;width:11px;height:15px;z-index:9;pointer-events:none;
+  transition:left .5s steps(8),top .5s steps(8)}
+.mockTerminal{position:absolute;inset:0;background:#080610;padding:16px;font-size:9px;
+  color:var(--green);line-height:2;display:none;overflow:hidden}
+.mockTerminal.gor{display:block}
+.mockYeniden{position:absolute;inset:0;display:none;align-items:center;justify-content:center;
+  flex-direction:column;gap:16px}
+.mockYeniden.gor{display:flex}
+.mockYeniden .ikon{font-size:38px}
+.mockYeniden .yaz{font-size:9px;color:var(--dim)}
+.oynatCubuk{display:flex;gap:5px;margin-top:14px}
+.oynatCubuk i{flex:1;height:5px;background:var(--brd2)}
+.oynatCubuk i.dolu{background:var(--cyan)}
+
+/* ---------- CANLI PANEL ---------- */
+.canliDurum{display:flex;align-items:center;gap:12px;padding:14px 16px;margin-bottom:20px;
+  font-size:9px;line-height:1.9;background:var(--bg2);box-shadow:0 0 0 3px var(--brd2) inset;
+  flex-wrap:wrap}
+.nokta{width:11px;height:11px;flex:0 0 auto;background:var(--red)}
+.nokta.yesil{background:var(--green)}
+.canliDurum .yz{flex:1;min-width:200px;color:var(--dim)}
+.canliDurum .yz b{color:var(--txt)}
+.demoEtiket{font-size:8px;color:var(--yellow);background:#2a2410;padding:5px 9px;
+  box-shadow:0 0 0 2px var(--yellow) inset}
+
+.panelKutu{padding:22px}
+.pSatir{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:16px}
+.panelKutu input[type=text]{flex:1 1 220px;min-width:0;background:var(--bg2);border:0;outline:0;
+  color:var(--green);font-family:var(--mono);font-size:11px;padding:13px;
+  box-shadow:0 0 0 3px var(--brd2) inset}
+.panelKutu input[type=text]:focus{box-shadow:0 0 0 3px var(--cyan) inset}
+.panelKutu input[type=text]::placeholder{color:#544a86}
+.fizgara{display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px}
+@media(max-width:640px){.fizgara{grid-template-columns:repeat(3,1fr)}}
+.fbtn{position:relative;text-align:center;padding:13px 4px;cursor:pointer;border:0;
+  font-family:var(--mono);background:var(--panel2);
+  box-shadow:0 0 0 3px var(--brd2) inset}
+.fbtn .ust{display:block;font-size:12px;color:var(--cyan)}
+.fbtn .alt{display:block;font-size:7px;color:var(--dim);margin-top:4px}
+.fbtn.sec{background:var(--pink);box-shadow:0 0 0 3px var(--yellow) inset}
+.fbtn.sec .ust,.fbtn.sec .alt{color:#fff}
+.kesSatir{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.kesSatir input{flex:1;min-width:0;background:var(--bg2);border:0;outline:0;color:var(--yellow);
+  font-family:var(--mono);font-size:15px;text-align:center;padding:11px 4px;
+  box-shadow:0 0 0 3px var(--brd2) inset}
+.kesSatir .ok{color:var(--pink);flex:0 0 auto}
+.kesSatir label{font-size:8px;color:var(--dim);flex:0 0 auto}
+#pIndir{width:100%;padding:18px;font-size:14px;letter-spacing:3px}
+.bar{display:flex;gap:3px;margin:16px 0 10px}
+.bar i{flex:1;height:20px;background:var(--bg2);box-shadow:0 0 0 2px #000 inset}
+.bar i.dolu{background:var(--green);box-shadow:0 0 0 2px var(--yellow) inset}
+.pDurum{display:flex;justify-content:space-between;gap:12px;font-size:9px;flex-wrap:wrap}
+#pAsama{color:var(--cyan)}
+#pYuzde{color:var(--yellow);font-size:15px}
+
+/* ---------- İNDİRME KARTLARI ---------- */
+.indirKart{padding:22px;display:flex;flex-direction:column;gap:14px}
+.indirKart .ust2{display:flex;align-items:center;gap:12px}
+.indirKart .amblem{width:44px;height:44px;flex:0 0 auto;display:flex;align-items:center;
+  justify-content:center;font-size:17px;color:#fff;background:var(--brd2)}
+.indirKart h3{font-size:11px;color:var(--txt);font-weight:400;letter-spacing:.5px}
+.indirKart .sur{font-size:8px;color:var(--dim)}
+.indirKart .aciklama{font-size:9px;color:var(--dim);line-height:2;flex:1}
+.indirKart .butonlar{display:flex;gap:10px;flex-wrap:wrap}
+
+/* ---------- SSS ---------- */
+.sss{display:grid;gap:12px}
+.soru{padding:16px 18px;cursor:pointer}
+.soru .s{color:var(--cyan);font-size:10px;display:flex;gap:12px;align-items:flex-start}
+.soru .s .isaret{color:var(--pink);flex:0 0 auto}
+.soru .c{font-size:9px;color:var(--dim);line-height:2.1;margin-top:12px;padding-left:26px;display:none}
+.soru.acik .c{display:block}
+.soru .c code{color:var(--green);background:var(--bg2);padding:2px 6px}
+
+footer{padding:50px 0 60px;text-align:center;border-top:3px solid var(--brd2)}
+footer .yz{font-size:8px;color:var(--dim);line-height:2.4}
+footer .yz b{color:var(--pink)}
+.uyari{margin-top:18px;padding:14px 16px;font-size:8px;color:var(--dim);line-height:2;
+  background:var(--bg2);box-shadow:0 0 0 2px var(--brd2) inset}
+.uyari b{color:var(--yellow)}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="kap">
+    <canvas class="sprite" width="16" height="16"></canvas>
+    <span class="ad">İNDİRAGANDİ</span>
+    <a class="lnk" href="#ozellikler">ÖZELLİKLER</a>
+    <a class="lnk" href="#kurulum">KURULUM</a>
+    <a class="lnk" href="#nle">EKLENTİLER</a>
+    <a class="lnk" href="#panel">CANLI PANEL</a>
+    <a class="lnk" href="https://github.com/wusdo/indiragandi" target="_blank" rel="noopener">GITHUB</a>
+  </div>
+</nav>
+
+<!-- ================= HERO ================= -->
+<header class="hero">
+  <div class="kap">
+    <canvas id="heroSprite" class="sprite" width="16" height="16"></canvas>
+    <h1>İNDİRAGANDİ</h1>
+    <p class="slogan">
+      YouTube, Instagram, Vimeo ve 1000+ siteden video indirir.<br>
+      <b>Doğrudan Premiere, After Effects veya DaVinci projene atar.</b>
+    </p>
+    <div class="rozetler">
+      <span class="rozet">macOS</span>
+      <span class="rozet"><b>sudo yok</b></span>
+      <span class="rozet"><b>Homebrew yok</b></span>
+      <span class="rozet">MIT lisans</span>
+      <span class="rozet"><b>tek komut</b></span>
+    </div>
+    <div class="ctalar">
+      <a class="btn ana" href="#kurulum">▼ KUR</a>
+      <a class="btn" href="#nle">NASIL KURULUYOR</a>
+    </div>
+  </div>
+</header>
+
+<!-- ================= ÖZELLİKLER ================= -->
+<section id="ozellikler">
+  <div class="kap">
+    <h2><span class="no">01</span> NE YAPAR</h2>
+    <p class="altbaslik">İndirme aracı değil, kurgu iş akışının parçası.</p>
+    <div class="izgara">
+      <div class="kart px">
+        <span class="ikon">🎬</span>
+        <h3>KURGUYA DOĞRUDAN DÜŞER</h3>
+        <p>İndirme biter bitmez dosya <b>aktif bin'e / Project paneline / Media Pool'a</b> girer. İstersen timeline'a da yerleşir. Finder'da dosya aramazsın.</p>
+      </div>
+      <div class="kart px">
+        <span class="ikon">✂️</span>
+        <h3>İSTEDİĞİN ARALIK</h3>
+        <p><b>1:30 → 2:45</b> yaz, sadece o bölüm insin. 10 dakikalık videodan 30 saniye almak için tamamını indirmez. Kayıpsız keser.</p>
+      </div>
+      <div class="kart px">
+        <span class="ikon">🎞️</span>
+        <h3>KURGUYA UYGUN CODEC</h3>
+        <p>Önce <b>H.264</b> arar — AV1 timeline'ı boğuyor. mp4 içine kapak görseli gömmez, NLE'ler onu yanlış okuyor.</p>
+      </div>
+      <div class="kart px">
+        <span class="ikon">📐</span>
+        <h3>KALİTE SEÇİMİ</h3>
+        <p>MP3 · 720p · 1080p · 1440p · <b>4K</b> · MAX. Link yapıştırdığın anda kapak, başlık, kanal ve süre önizlemesi gelir.</p>
+      </div>
+      <div class="kart px">
+        <span class="ikon">🔐</span>
+        <h3>GİRİŞ GEREKTİREN İÇERİK</h3>
+        <p>Instagram'ın gizli gönderileri, Vimeo unlisted linkleri için <b>tarayıcı çerezi</b> seçicisi. Safari, Chrome, Firefox.</p>
+      </div>
+      <div class="kart px">
+        <span class="ikon">🕹️</span>
+        <h3>PIXEL ART ARAYÜZ</h3>
+        <p>Blok ilerleme çubuğu, tarama çizgileri, <b>8-bit ses efektleri</b>. Bitince zafer melodisi çalar.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= KURULUM ================= -->
+<section id="kurulum">
+  <div class="kap">
+    <h2><span class="no">02</span> KURULUM</h2>
+    <p class="altbaslik">Tek komut. Homebrew, Python paketi, yönetici şifresi gerekmiyor.</p>
+
+    <div class="terminal">
+      <div class="termbar">
+        <span class="lamba l1"></span><span class="lamba l2"></span><span class="lamba l3"></span>
+        <span>Terminal</span>
+      </div>
+      <button class="btn kucuk kopyala" id="kopyalaBtn">KOPYALA</button>
+      <div class="termgovde">
+<pre><span class="yorum"># indir, kur, bitir</span>
+git clone https://github.com/wusdo/indiragandi.git
+cd indiragandi
+bash kur.sh</pre>
+      </div>
+    </div>
+
+    <div class="adimlar">
+      <div class="adim px">
+        <span class="sayi">1</span>
+        <span class="metin"><b>Motor kurulur</b>yt-dlp ve ffmpeg indirilir. Sistemde ffmpeg varsa o kullanılır, yoksa taşınabilir sürüm çekilir. Hiçbir sistem dosyasına dokunmaz.</span>
+      </div>
+      <div class="adim px">
+        <span class="sayi">2</span>
+        <span class="metin"><b>Üç eklenti birden yerleşir</b>Premiere Pro, After Effects ve DaVinci Resolve klasörleri bulunur, eklentiler kopyalanır. Kurulu olmayan uygulama atlanır.</span>
+      </div>
+      <div class="adim px">
+        <span class="sayi">3</span>
+        <span class="metin"><b>Uygulamaları yeniden başlat</b>Hepsi bu. Menüde İndiragandi seni bekliyor olur.</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= NLE KURULUMU ================= -->
+<section id="nle">
+  <div class="kap">
+    <h2><span class="no">03</span> EKLENTİYİ AÇMAK</h2>
+    <p class="altbaslik">Kurulumdan sonra tek yapman gereken menüden açmak. Adımlara tıklayarak izleyebilirsin.</p>
+
+    <div class="sekmeler" id="sekmeler">
+      <button class="sekme sec" data-nle="ppro"><span class="uy">Pr</span>PREMIERE PRO</button>
+      <button class="sekme" data-nle="aeft"><span class="uy">Ae</span>AFTER EFFECTS</button>
+      <button class="sekme" data-nle="resolve"><span class="uy">Rs</span>DAVINCI RESOLVE</button>
+    </div>
+
+    <div class="nleKutu px">
+      <div class="nleUst">
+        <h3 id="nleAd">PREMIERE PRO</h3>
+        <span class="yol" id="nleYol">Window › Extensions › Indiragandi</span>
+      </div>
+      <div class="nleIcerik">
+        <div class="nleAdimlar" id="nleAdimlar"></div>
+        <div>
+          <div class="mock" id="mock">
+            <div class="mockbar">
+              <span class="lamba l1"></span><span class="lamba l2"></span><span class="lamba l3"></span>
+              <span class="ad" id="mockAd">Adobe Premiere Pro 2026</span>
+            </div>
+            <div class="mockmenu" id="mockMenu"></div>
+            <div class="mockalan">
+              <div class="acilirMenu" id="acilir"></div>
+              <div class="mockSol">
+                <div class="serit"></div><div class="serit g"></div><div class="serit"></div>
+                <div class="serit m"></div><div class="serit"></div><div class="serit g"></div>
+                <div class="serit"></div>
+              </div>
+              <div class="mockPanel" id="mockPanel">
+                <div class="pb">İNDİRAGANDİ</div>
+                <div class="pi"></div><div class="pi"></div>
+                <div class="pi" style="width:60%"></div>
+                <div class="pbtn"></div>
+              </div>
+              <canvas class="imlec" id="imlec" width="11" height="15"></canvas>
+              <div class="mockTerminal" id="mockTerm"></div>
+              <div class="mockYeniden" id="mockYeni">
+                <span class="ikon" id="mockYeniIkon">Pr</span>
+                <span class="yaz">yeniden başlatılıyor...</span>
+              </div>
+            </div>
+          </div>
+          <div class="oynatCubuk" id="oynat"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= CANLI PANEL ================= -->
+<section id="panel">
+  <div class="kap">
+    <h2><span class="no">04</span> CANLI PANEL</h2>
+    <p class="altbaslik">Eklentinin arayüzü, tam olarak Premiere içinde göründüğü gibi.</p>
+
+    <div class="canliDurum" id="canliDurum">
+      <span class="nokta" id="nokta"></span>
+      <span class="yz" id="canliYazi">Motor aranıyor...</span>
+      <span class="demoEtiket" id="demoEtiket" style="display:none">DEMO MODU</span>
+      <a class="btn kucuk" id="paneliAc" href="http://localhost:8767/" target="_blank" rel="noopener">PANELİ AÇ</a>
+    </div>
+
+    <div class="panelKutu px">
+      <div class="pSatir">
+        <input type="text" id="pUrl" placeholder="https://youtube.com/..." spellcheck="false">
+        <button class="btn kucuk" id="pPano">PANO</button>
+      </div>
+
+      <div class="fizgara" id="pFormatlar">
+        <button class="fbtn" data-f="mp3"><span class="ust">MP3</span><span class="alt">SES</span></button>
+        <button class="fbtn" data-f="720"><span class="ust">720</span><span class="alt">HAFİF</span></button>
+        <button class="fbtn sec" data-f="1080"><span class="ust">1080</span><span class="alt">FULL HD</span></button>
+        <button class="fbtn" data-f="1440"><span class="ust">1440</span><span class="alt">2K</span></button>
+        <button class="fbtn" data-f="2160"><span class="ust">4K</span><span class="alt">2160</span></button>
+        <button class="fbtn" data-f="best"><span class="ust">MAX</span><span class="alt">EN İYİ</span></button>
+      </div>
+
+      <div class="kesSatir">
+        <label>ARALIK</label>
+        <input type="text" id="pBas" placeholder="0:00" spellcheck="false">
+        <span class="ok">→</span>
+        <input type="text" id="pBit" placeholder="son" spellcheck="false">
+      </div>
+
+      <button class="btn ana" id="pIndir">▼ İNDİR ▼</button>
+
+      <div class="bar" id="pBar"></div>
+      <div class="pDurum">
+        <span id="pAsama">Hazır</span>
+        <span id="pYuzde">0%</span>
+      </div>
+    </div>
+
+    <div class="uyari">
+      <b>Neden her yerde çalışmıyor?</b> Bu sayfa GitHub üzerinden <code>https://</code> ile geliyor.
+      Tarayıcılar güvenlik gereği https sayfaların <code>http://localhost</code> adresine istek atmasını engelliyor.
+      Gerçek indirme için <b>PANELİ AÇ</b> butonuna bas — aynı arayüz, motorun kendi adresinde açılır.
+      Kurulumdan sonra bu sayfa <code>localhost:8767/tanitim</code> adresinden de açılabiliyor, orada canlı panel tam çalışır.
+    </div>
+  </div>
+</section>
+
+<!-- ================= İNDİRME ================= -->
+<section id="indirme">
+  <div class="kap">
+    <h2><span class="no">05</span> İNDİR</h2>
+    <p class="altbaslik">Tek paket üçünü de kuruyor. Aşağıdan uygulamana özel kurulum adımlarını da alabilirsin.</p>
+
+    <div class="ctalar" style="justify-content:flex-start;margin-bottom:32px">
+      <a class="btn ana" href="https://github.com/wusdo/indiragandi/archive/refs/heads/main.zip">▼ PAKETİ İNDİR (.ZIP)</a>
+      <a class="btn" href="https://github.com/wusdo/indiragandi" target="_blank" rel="noopener">KAYNAK KOD</a>
+    </div>
+
+    <div class="izgara">
+      <div class="indirKart px">
+        <div class="ust2">
+          <span class="amblem" style="background:#2a1a4d;color:#c9a6ff">Pr</span>
+          <div><h3>PREMIERE PRO</h3><span class="sur">2020 ve üzeri · CEP paneli</span></div>
+        </div>
+        <p class="aciklama">İndirilen klip <b>aktif bin'e</b> düşer. İstersen playhead'in olduğu yere timeline'a da yerleşir.</p>
+        <div class="butonlar">
+          <a class="btn kucuk" href="https://github.com/wusdo/indiragandi/archive/refs/heads/main.zip">EKLENTİYİ İNDİR</a>
+          <a class="btn kucuk" href="https://www.adobe.com/products/premiere.html" target="_blank" rel="noopener">PREMIERE</a>
+        </div>
+      </div>
+
+      <div class="indirKart px">
+        <div class="ust2">
+          <span class="amblem" style="background:#1a1440;color:#9b9bff">Ae</span>
+          <div><h3>AFTER EFFECTS</h3><span class="sur">2020 ve üzeri · CEP paneli</span></div>
+        </div>
+        <p class="aciklama">Klip <b>Project paneline</b> girer. Açık comp varsa katman olarak da eklenebilir.</p>
+        <div class="butonlar">
+          <a class="btn kucuk" href="https://github.com/wusdo/indiragandi/archive/refs/heads/main.zip">EKLENTİYİ İNDİR</a>
+          <a class="btn kucuk" href="https://www.adobe.com/products/aftereffects.html" target="_blank" rel="noopener">AFTER EFFECTS</a>
+        </div>
+      </div>
+
+      <div class="indirKart px">
+        <div class="ust2">
+          <span class="amblem" style="background:#3d1414;color:#ff9b9b">Rs</span>
+          <div><h3>DAVINCI RESOLVE</h3><span class="sur">17 ve üzeri · Fusion betiği</span></div>
+        </div>
+        <p class="aciklama">Klip <b>Media Pool'a</b> eklenir, istersen aktif timeline'a append edilir. Python 3 kurulu olmalı.</p>
+        <div class="butonlar">
+          <a class="btn kucuk" href="https://github.com/wusdo/indiragandi/archive/refs/heads/main.zip">EKLENTİYİ İNDİR</a>
+          <a class="btn kucuk" href="https://www.blackmagicdesign.com/products/davinciresolve" target="_blank" rel="noopener">RESOLVE</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= SSS ================= -->
+<section id="sss">
+  <div class="kap">
+    <h2><span class="no">06</span> SORULAR</h2>
+    <p class="altbaslik">Tıkla, açılsın.</p>
+    <div class="sss" id="sssListe">
+      <div class="soru px">
+        <div class="s"><span class="isaret">▸</span><span>Homebrew veya yönetici şifresi gerekiyor mu?</span></div>
+        <div class="c">Hayır. <code>kur.sh</code> yt-dlp'yi doğrudan resmi sürüm sayfasından çekiyor, ffmpeg'i sistemde bulamazsa taşınabilir sürümünü kuruyor. Her şey ev dizinine yazılıyor, <code>sudo</code> hiç çalışmıyor.</div>
+      </div>
+      <div class="soru px">
+        <div class="s"><span class="isaret">▸</span><span>Premiere paneli menüde çıkmıyor.</span></div>
+        <div class="c">Uygulamayı tamamen kapatıp açman gerekiyor — CEP eklentilerini sadece açılışta tarıyor. <code>kur.sh</code> imzasız eklenti iznini (CSXS debug modu) zaten açıyor.</div>
+      </div>
+      <div class="soru px">
+        <div class="s"><span class="isaret">▸</span><span>Resolve'da Scripts menüsünde görünmüyor.</span></div>
+        <div class="c">Resolve, <code>.py</code> betiklerini ancak sistemde bir Python 3 kuruluysa listeliyor. Xcode'un komut satırı Python'unu görmüyor; <a href="https://www.python.org/downloads/" target="_blank" rel="noopener">python.org</a> kurulumunu yapman yeterli. Sonra Resolve'u yeniden başlat.</div>
+      </div>
+      <div class="soru px">
+        <div class="s"><span class="isaret">▸</span><span>YouTube hata veriyor.</span></div>
+        <div class="c">Platformlar korumalarını sık değiştiriyor. Panelde <b>MOTORU GÜNCELLE</b> butonuna bas, ya da terminalde <code>indir -g</code> çalıştır. Sorunların çoğu bununla çözülüyor.</div>
+      </div>
+      <div class="soru px">
+        <div class="s"><span class="isaret">▸</span><span>Giriş gerektiren bir gönderiyi indiremiyorum.</span></div>
+        <div class="c">Panelin altındaki <b>ÇEREZ</b> seçiciden tarayıcını seç. O tarayıcıda ilgili siteye giriş yapmış olman gerekiyor. Safari seçeceksen Terminal'e Tam Disk Erişimi vermen gerekebilir.</div>
+      </div>
+      <div class="soru px">
+        <div class="s"><span class="isaret">▸</span><span>Verilerim bir yere gidiyor mu?</span></div>
+        <div class="c">Hayır. Motor yalnızca <code>127.0.0.1</code> adresine bağlanıyor, dışarıya açık değil. Ne hesap, ne anahtar, ne telemetri var. Kaynak kodun tamamı GitHub'da.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="kap">
+    <canvas class="sprite" width="16" height="16" style="width:52px;height:52px;margin-bottom:14px"></canvas>
+    <p class="yz">
+      <b>İNDİRAGANDİ</b> · MIT lisansı · <a href="https://github.com/wusdo/indiragandi" target="_blank" rel="noopener">github.com/wusdo/indiragandi</a><br>
+      İndirme motoru <a href="https://github.com/yt-dlp/yt-dlp" target="_blank" rel="noopener">yt-dlp</a>.
+      Yalnızca indirme hakkına sahip olduğun içerikler için kullan.
+    </p>
+  </div>
+</footer>
+
+<script>
+/* ==================== pixel maskot ==================== */
+var SPRITE = [
+"...K........K...","....K......K....",".....K....K.....","..KKKKKKKKKKKK..",
+"..KBBBBBBBBBBK..","..KBSSSSSSSSBK..","..KBSSSPPSSSBK..","..KBSSSPPSSSBK..",
+"..KBSPPPPPPSBK..","..KBSSPPPPSSBK..","..KBSSSPPSSSBK..","..KBSSSSSSSSBK..",
+"..KBBBBBBBBBBK..","..KBYBBBBBBYBK..","..KKKKKKKKKKKK..","...K.K....K.K..."];
+var RENK = {K:"#120e20",B:"#6b4ea8",S:"#4deeea",P:"#ff3d81",Y:"#ffe700"};
+var blink = 0;
+function cizSprite(cv){
+  var cx = cv.getContext("2d");
+  cx.clearRect(0,0,16,16);
+  for(var y=0;y<16;y++)for(var x=0;x<16;x++){
+    var c = SPRITE[y][x]; if(c===".") continue;
+    if(c==="Y" && blink) c="P";
+    cx.fillStyle = RENK[c]; cx.fillRect(x,y,1,1);
+  }
+}
+function tumSprite(){ document.querySelectorAll(".sprite").forEach(cizSprite); }
+tumSprite();
+setInterval(function(){ blink = blink?0:1; tumSprite(); }, 620);
+
+/* imleç sprite */
+(function(){
+  var c = document.getElementById("imlec").getContext("2d");
+  var OK = ["K..........","KK.........","KWK........","KWWK.......","KWWWK......",
+            "KWWWWK.....","KWWWWWK....","KWWWWWWK...","KWWWWWWWK..","KWWWWKKKKK.",
+            "KWWKWK.....","KWK.KWK....","KK..KWK....","K....KWK...",".....KK...."];
+  for(var y=0;y<15;y++)for(var x=0;x<11;x++){
+    var ch = OK[y][x]; if(ch==="."||!ch) continue;
+    c.fillStyle = ch==="K" ? "#0d0a18" : "#ffffff";
+    c.fillRect(x,y,1,1);
+  }
+})();
+
+var $ = function(s){ return document.querySelector(s); };
+
+/* ==================== kopyala ==================== */
+$("#kopyalaBtn").onclick = function(){
+  var m = "git clone https://github.com/wusdo/indiragandi.git\ncd indiragandi\nbash kur.sh";
+  var bit = function(){ var b = $("#kopyalaBtn"); b.textContent = "KOPYALANDI ✓";
+    setTimeout(function(){ b.textContent = "KOPYALA"; }, 1600); bip(880,.05); };
+  if(navigator.clipboard) navigator.clipboard.writeText(m).then(bit, bit);
+  else bit();
+};
+
+/* ==================== NLE anlatımı ==================== */
+var NLE = {
+  ppro: {
+    ad: "PREMIERE PRO", yol: "Window › Extensions › Indiragandi",
+    pencere: "Adobe Premiere Pro 2026", amblem: "Pr",
+    menu: ["File","Edit","Clip","Sequence","Markers","Graphics","View","Window","Help"],
+    menuIndex: 7,
+    acilir: ["Workspaces","Extensions","Effect Controls","Effects","Essential Graphics"],
+    acilirIndex: 1,
+    adimlar: [
+      ["Kurulumu çalıştır","Terminalde <b>bash kur.sh</b> — eklenti Premiere'in eklenti klasörüne kendi yerleşir."],
+      ["Premiere'i yeniden başlat","Açıksa tamamen kapat. Eklentiler sadece açılışta taranıyor."],
+      ["Window › Extensions › Indiragandi","Panel sağda açılır. İstersen sürükleyip çalışma alanına sabitle."]
+    ]
+  },
+  aeft: {
+    ad: "AFTER EFFECTS", yol: "Window › Extensions › Indiragandi",
+    pencere: "Adobe After Effects 2026", amblem: "Ae",
+    menu: ["File","Edit","Composition","Layer","Effect","Animation","View","Window","Help"],
+    menuIndex: 7,
+    acilir: ["Workspace","Extensions","Align","Character","Effects & Presets"],
+    acilirIndex: 1,
+    adimlar: [
+      ["Kurulumu çalıştır","Aynı komut ikisini birden kuruyor — ayrı bir işlem yok."],
+      ["After Effects'i yeniden başlat","Uygulamayı tamamen kapat ve tekrar aç."],
+      ["Window › Extensions › Indiragandi","Panel açılır. İndirilen dosya Project paneline düşer."]
+    ]
+  },
+  resolve: {
+    ad: "DAVINCI RESOLVE", yol: "Workspace › Scripts › Indiragandi",
+    pencere: "DaVinci Resolve 21", amblem: "Rs",
+    menu: ["File","Edit","Trim","Timeline","Clip","Mark","View","Playback","Fusion","Color","Workspace","Help"],
+    menuIndex: 10,
+    acilir: ["Layouts","Scripts","Console","Primary Workspace","Video Clean Feed"],
+    acilirIndex: 1,
+    adimlar: [
+      ["Kurulumu çalıştır","Betik Resolve'un Utility klasörüne kopyalanır. Python 3 kurulu olmalı."],
+      ["Resolve'u yeniden başlat","Scripts menüsü sadece açılışta taranıyor."],
+      ["Workspace › Scripts › Indiragandi","Pencere açılır. İnen klip Media Pool'a eklenir."]
+    ]
+  }
+};
+
+var aktifNle = "ppro", aktifAdim = 0, oynatZaman = null;
+
+function nleKur(anahtar){
+  aktifNle = anahtar;
+  var n = NLE[anahtar];
+  $("#nleAd").textContent = n.ad;
+  $("#nleYol").textContent = n.yol;
+  $("#mockAd").textContent = n.pencere;
+  $("#mockYeniIkon").textContent = n.amblem;
+
+  var mm = $("#mockMenu"); mm.innerHTML = "";
+  n.menu.forEach(function(m,i){
+    var s = document.createElement("span"); s.textContent = m;
+    if(i === n.menuIndex) s.id = "menuHedef";
+    mm.appendChild(s);
+  });
+
+  var ac = $("#acilir"); ac.innerHTML = "";
+  n.acilir.forEach(function(m,i){
+    var e = document.createElement("i");
+    e.textContent = m + (i === n.acilirIndex ? "   ›" : "");
+    ac.appendChild(e);
+  });
+
+  var la = $("#nleAdimlar"); la.innerHTML = "";
+  n.adimlar.forEach(function(a,i){
+    var d = document.createElement("div");
+    d.className = "nleAdim"; d.dataset.i = i;
+    d.innerHTML = '<span class="n">'+(i+1)+'</span><span class="t"><b>'+a[0]+'</b>'+a[1]+'</span>';
+    la.appendChild(d);
+  });
+
+  var oy = $("#oynat"); oy.innerHTML = "";
+  n.adimlar.forEach(function(){ oy.appendChild(document.createElement("i")); });
+
+  adimGoster(0);
+}
+
+function adimGoster(i){
+  aktifAdim = i;
+  var n = NLE[aktifNle];
+  document.querySelectorAll(".nleAdim").forEach(function(e,j){
+    e.className = "nleAdim" + (j===i ? " aktif" : "");
+  });
+  document.querySelectorAll("#oynat i").forEach(function(e,j){
+    e.className = j<=i ? "dolu" : "";
+  });
+
+  var term = $("#mockTerm"), yeni = $("#mockYeni"), panel = $("#mockPanel"),
+      acilir = $("#acilir"), imlec = $("#imlec");
+  term.className = "mockTerminal"; yeni.className = "mockYeniden";
+  panel.className = "mockPanel"; acilir.className = "acilirMenu";
+  imlec.style.opacity = "0";
+  var hedef = $("#menuHedef"); if(hedef) hedef.className = "";
+  acilir.querySelectorAll("i").forEach(function(e){ e.className = ""; });
+
+  if(i === 0){
+    term.className = "mockTerminal gor";
+    term.innerHTML = "";
+    var satirlar = ["$ bash kur.sh","","[1/6] yt-dlp indiriliyor...   ✓",
+                    "[2/6] ffmpeg aranıyor...      ✓","[3/6] motor kopyalanıyor...   ✓",
+                    "[4/6] PATH ayarlanıyor...     ✓","[5/6] uygulama olusturuluyor  ✓",
+                    "[6/6] eklentiler...           ✓","","  KURULDU"];
+    satirlar.forEach(function(s,k){
+      setTimeout(function(){
+        if(aktifAdim !== 0) return;
+        var d = document.createElement("div");
+        d.textContent = s;
+        if(s.indexOf("KURULDU") > -1) d.style.color = "#ffe700";
+        term.appendChild(d);
+      }, k*130);
+    });
+  }
+  else if(i === 1){
+    yeni.className = "mockYeniden gor";
+  }
+  else {
+    imlec.style.opacity = "1";
+    imlec.style.left = "20px"; imlec.style.top = "120px";
+    setTimeout(function(){
+      if(aktifAdim !== 2) return;
+      var h = $("#menuHedef");
+      if(h){
+        h.className = "vurgu";
+        var r = h.getBoundingClientRect(), m = $("#mock").getBoundingClientRect();
+        imlec.style.left = (r.left - m.left + 12) + "px";
+        imlec.style.top  = "8px";
+      }
+    }, 260);
+    setTimeout(function(){
+      if(aktifAdim !== 2) return;
+      acilir.className = "acilirMenu gor";
+      var h = $("#menuHedef"), m = $("#mock").getBoundingClientRect();
+      if(h){ var r = h.getBoundingClientRect(); acilir.style.left = (r.left - m.left) + "px"; }
+    }, 800);
+    setTimeout(function(){
+      if(aktifAdim !== 2) return;
+      var hedefSatir = acilir.querySelectorAll("i")[NLE[aktifNle].acilirIndex];
+      if(hedefSatir){
+        hedefSatir.className = "vurgu";
+        var r = hedefSatir.getBoundingClientRect(), m = $("#mock").getBoundingClientRect();
+        imlec.style.left = (r.left - m.left + 70) + "px";
+        imlec.style.top  = (r.top - m.top + 6) + "px";
+      }
+    }, 1300);
+    setTimeout(function(){
+      if(aktifAdim !== 2) return;
+      panel.className = "mockPanel acik";
+      bip(660,.05); setTimeout(function(){ bip(880,.07); }, 110);
+    }, 1900);
+  }
+}
+
+function oynatBaslat(){
+  clearInterval(oynatZaman);
+  oynatZaman = setInterval(function(){
+    adimGoster((aktifAdim + 1) % NLE[aktifNle].adimlar.length);
+  }, 4200);
+}
+
+$("#sekmeler").addEventListener("click", function(e){
+  var b = e.target;
+  while(b && b.nodeType === 1 && !b.classList.contains("sekme")) b = b.parentNode;
+  if(!b || b.nodeType !== 1 || !b.classList.contains("sekme")) return;
+  document.querySelectorAll(".sekme").forEach(function(s){ s.classList.remove("sec"); });
+  b.classList.add("sec");
+  nleKur(b.dataset.nle); oynatBaslat(); bip(760,.05);
+});
+$("#nleAdimlar").addEventListener("click", function(e){
+  var d = e.target;
+  while(d && d.nodeType === 1 && !d.classList.contains("nleAdim")) d = d.parentNode;
+  if(!d || d.nodeType !== 1) return;
+  adimGoster(parseInt(d.dataset.i,10)); oynatBaslat(); bip(760,.04);
+});
+
+nleKur("ppro");
+/* animasyon sadece görünürken dönsün */
+if(window.IntersectionObserver){
+  new IntersectionObserver(function(g){
+    g.forEach(function(x){ x.isIntersecting ? oynatBaslat() : clearInterval(oynatZaman); });
+  }, {threshold:.25}).observe(document.getElementById("nle"));
+} else oynatBaslat();
+
+/* ==================== SSS ==================== */
+$("#sssListe").addEventListener("click", function(e){
+  var s = e.target;
+  while(s && s.nodeType === 1 && !s.classList.contains("soru")) s = s.parentNode;
+  if(!s || s.nodeType !== 1) return;
+  s.classList.toggle("acik");
+  s.querySelector(".isaret").textContent = s.classList.contains("acik") ? "▾" : "▸";
+  bip(700,.04);
+});
+
+/* ==================== CANLI PANEL ==================== */
+var API = "http://127.0.0.1:8767";
+var canli = false, pFormat = "1080", pIs = null, pAnket = null;
+
+var BLOK = 20, pBar = $("#pBar");
+for(var i=0;i<BLOK;i++) pBar.appendChild(document.createElement("i"));
+function pCiz(y){
+  var dolu = Math.round(y/100*BLOK);
+  var ch = pBar.children;
+  for(var i=0;i<ch.length;i++) ch[i].className = i<dolu ? "dolu" : "";
+  $("#pYuzde").textContent = Math.round(y) + "%";
+}
+pCiz(0);
+
+function motorKontrol(){
+  if(location.protocol === "https:"){
+    canliDegisti(false, "Bu sayfa <b>https</b> üzerinden geldiği için tarayıcı yerel motora bağlanmayı engelliyor. Aşağıdaki panel demo modunda çalışıyor.");
+    return;
+  }
+  fetch(API + "/api/gecmis", {cache:"no-store"})
+    .then(function(){ canliDegisti(true, "Motor <b>çalışıyor</b>. Aşağıdaki panel gerçek indirme yapar."); })
+    .catch(function(){ canliDegisti(false, "Motor bulunamadı. <b>İndiragandi</b> uygulamasını bir kez aç, sonra sayfayı yenile."); });
+}
+function canliDegisti(durum, mesaj){
+  canli = durum;
+  $("#nokta").className = "nokta" + (durum ? " yesil" : "");
+  $("#canliYazi").innerHTML = mesaj;
+  $("#demoEtiket").style.display = durum ? "none" : "inline-block";
+  $("#paneliAc").style.display = durum ? "none" : "inline-block";
+}
+motorKontrol();
+
+$("#pFormatlar").addEventListener("click", function(e){
+  var b = e.target;
+  while(b && b.nodeType === 1 && !b.classList.contains("fbtn")) b = b.parentNode;
+  if(!b || b.nodeType !== 1 || !b.classList.contains("fbtn")) return;
+  document.querySelectorAll(".fbtn").forEach(function(x){ x.classList.remove("sec"); });
+  b.classList.add("sec"); pFormat = b.dataset.f; bip(880,.04);
+});
+
+$("#pPano").onclick = function(){
+  if(canli){
+    fetch(API + "/api/pano").then(function(r){ return r.json(); }).then(function(d){
+      if(d.metin && d.metin.indexOf("http") === 0) $("#pUrl").value = d.metin;
+    }).catch(function(){});
+    return;
+  }
+  if(navigator.clipboard && navigator.clipboard.readText){
+    navigator.clipboard.readText().then(function(t){
+      if(t && t.trim().indexOf("http") === 0) $("#pUrl").value = t.trim();
+    }).catch(function(){ $("#pUrl").focus(); });
+  } else $("#pUrl").focus();
+};
+
+$("#pIndir").onclick = function(){
+  var u = ($("#pUrl").value || "").trim();
+  if(u.indexOf("http") !== 0){ $("#pUrl").focus(); bip(160,.15); return; }
+  if(canli) gercekIndir(u); else demoIndir();
+};
+
+function gercekIndir(u){
+  $("#pIndir").disabled = true; pCiz(0); $("#pAsama").textContent = "Başlatılıyor...";
+  var govde = {url:u, format:pFormat};
+  var b = $("#pBas").value.trim(), e = $("#pBit").value.trim();
+  if(b || e){ govde.bas = b; govde.bit = e; }
+  fetch(API + "/api/indir", {method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify(govde)})
+  .then(function(r){ return r.json(); })
+  .then(function(d){
+    if(!d.id) throw new Error(d.hata || "Başlatılamadı");
+    pIs = d.id;
+    pAnket = setInterval(function(){
+      fetch(API + "/api/durum?id=" + pIs).then(function(r){ return r.json(); }).then(function(s){
+        if(s.asama) $("#pAsama").textContent = s.asama;
+        if(typeof s.yuzde === "number") pCiz(s.yuzde);
+        if(s.durum === "bitti"){
+          clearInterval(pAnket); pCiz(100);
+          $("#pAsama").textContent = "✓ " + (s.dosya || "indi").slice(0,40);
+          $("#pIndir").disabled = false; zafer();
+        } else if(s.durum === "hata"){
+          clearInterval(pAnket);
+          $("#pAsama").textContent = "✗ " + (s.hata || "hata").slice(0,50);
+          $("#pIndir").disabled = false; bip(140,.25);
+        }
+      }).catch(function(){});
+    }, 500);
+  })
+  .catch(function(err){
+    $("#pAsama").textContent = "✗ " + err.message;
+    $("#pIndir").disabled = false;
+  });
+}
+
+function demoIndir(){
+  $("#pIndir").disabled = true;
+  var y = 0, asamalar = ["Bağlanıyor...","Görüntü indiriliyor... (1/2)","Ses indiriliyor... (2/2)","Birleştiriliyor..."];
+  $("#pAsama").textContent = asamalar[0];
+  pCiz(0);
+  var t = setInterval(function(){
+    y += 3 + Math.random()*7;
+    if(y >= 100){
+      clearInterval(t); pCiz(100);
+      $("#pAsama").textContent = "✓ DEMO — gerçeği için PANELİ AÇ";
+      $("#pIndir").disabled = false; zafer(); return;
+    }
+    pCiz(y);
+    $("#pAsama").textContent = asamalar[Math.min(asamalar.length-1, Math.floor(y/28))];
+  }, 130);
+}
+
+/* ==================== 8-bit ses ==================== */
+var ac = null;
+function bip(f,s){
+  try{
+    ac = ac || new (window.AudioContext || window.webkitAudioContext)();
+    var o = ac.createOscillator(), g = ac.createGain();
+    o.type = "square"; o.frequency.value = f; g.gain.value = .03;
+    o.connect(g); g.connect(ac.destination);
+    o.start(); o.stop(ac.currentTime + s);
+  }catch(e){}
+}
+function zafer(){ [523,659,784,1047].forEach(function(f,i){ setTimeout(function(){ bip(f,.09); }, i*90); }); }
+</script>
+</body>
+</html>
