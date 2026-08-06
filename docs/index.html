@@ -50,6 +50,28 @@ h2{font-size:20px;line-height:1.6;letter-spacing:1px;font-weight:400;color:var(-
 h2 .no{color:var(--pink)}
 .altbaslik{color:var(--dim);font-size:10px;margin-bottom:34px;line-height:2}
 
+/* ---------- AÇILIŞ EKRANI ---------- */
+#acilis{position:fixed;inset:0;z-index:999;background:var(--bg);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:26px}
+#acilisCv{width:min(92vw,880px);height:auto;image-rendering:pixelated}
+#acilisYazi{font-size:10px;color:var(--dim);letter-spacing:2px}
+#acilisYazi b{color:var(--yellow)}
+#acilis.bitti{animation:crtKapan .5s steps(7) forwards}
+@keyframes crtKapan{
+  0%{clip-path:inset(0 0 0 0)}
+  72%{clip-path:inset(48% 0 48% 0)}
+  100%{clip-path:inset(50% 0 50% 0);opacity:0;visibility:hidden}
+}
+@media(prefers-reduced-motion:reduce){
+  #acilis{display:none}
+}
+
+/* ---------- HERO VİDEO ---------- */
+.heroVideo{padding:8px;margin:30px auto 10px;max-width:820px}
+.heroVideo video{display:block;width:100%;height:auto;background:#000;
+  image-rendering:pixelated}
+.heroVideoAlt{color:var(--dim);font-size:8px;letter-spacing:1px}
+
 /* ---------- ÜST BAR ---------- */
 nav{position:sticky;top:0;z-index:150;background:rgba(13,10,24,.94);
   border-bottom:3px solid var(--brd2);backdrop-filter:blur(4px)}
@@ -272,6 +294,11 @@ footer .yz b{color:var(--pink)}
 </head>
 <body>
 
+<div id="acilis">
+  <canvas id="acilisCv" width="880" height="200"></canvas>
+  <div id="acilisYazi">YÜKLENİYOR <b id="acilisYuzde">0%</b></div>
+</div>
+
 <nav>
   <div class="kap">
     <canvas class="sprite" width="16" height="16"></canvas>
@@ -294,6 +321,12 @@ footer .yz b{color:var(--pink)}
       YouTube, Instagram, Vimeo ve 1000+ siteden video indirir.<br>
       <b>Doğrudan Premiere, After Effects veya DaVinci projene atar.</b>
     </p>
+    <div class="heroVideo px">
+      <video src="indiragandi.mp4" autoplay muted loop playsinline controls
+             preload="auto" aria-label="İndiragandi tanıtım videosu"></video>
+    </div>
+    <p class="heroVideoAlt">15 SANİYEDE NE YAPTIĞI</p>
+
     <div class="rozetler">
       <span class="rozet">macOS</span>
       <span class="rozet"><b>sudo yok</b></span>
@@ -354,11 +387,13 @@ footer .yz b{color:var(--pink)}
     <h2><span class="no">02</span> KURULUM</h2>
     <p class="altbaslik">Tek komut. Homebrew, Python paketi, yönetici şifresi gerekmiyor.</p>
 
-    <div class="videoKutu px">
-      <video src="indiragandi.mp4" autoplay muted loop playsinline controls
-             preload="metadata" aria-label="İndiragandi tanıtım videosu"></video>
+    <div class="rehberKutu px">
+      <iframe src="tutorial.html?kompakt=1" loading="lazy" title="Kurulum rehberi animasyonu"></iframe>
     </div>
-    <p class="videoAlt">15 saniyede ne yaptığı</p>
+    <div class="rehberAlt">
+      <span>76 saniye · 6 bölüm · Premiere · After Effects · DaVinci Resolve</span>
+      <a class="btn kucuk" href="tutorial.html" target="_blank" rel="noopener">TAM EKRAN AÇ</a>
+    </div>
 
     <div class="terminal">
       <div class="termbar">
@@ -395,15 +430,7 @@ bash kur.sh</pre>
 <section id="nle">
   <div class="kap">
     <h2><span class="no">03</span> EKLENTİYİ AÇMAK</h2>
-    <p class="altbaslik">Üç uygulamanın kurulumu baştan sona, altyazılı. Aşağıda adım adım da inceleyebilirsin.</p>
-
-    <div class="rehberKutu px">
-      <iframe src="tutorial.html?kompakt=1" loading="lazy" title="Kurulum rehberi animasyonu"></iframe>
-    </div>
-    <div class="rehberAlt">
-      <span>76 saniye · 6 bölüm · Premiere · After Effects · DaVinci Resolve</span>
-      <a class="btn kucuk" href="tutorial.html" target="_blank" rel="noopener">TAM EKRAN AÇ</a>
-    </div>
+    <p class="altbaslik">Kurulumdan sonra tek yapman gereken menüden açmak. Adımlara tıklayarak izleyebilirsin.</p>
 
     <div class="sekmeler" id="sekmeler">
       <button class="sekme sec" data-nle="ppro"><span class="uy">Pr</span>PREMIERE</button>
@@ -639,6 +666,102 @@ setInterval(function(){ blink = blink?0:1; tumSprite(); }, 620);
 })();
 
 var $ = function(s){ return document.querySelector(s); };
+
+/* ==================== AÇILIŞ: PAC-MAN ==================== */
+(function(){
+  var kat = document.getElementById("acilis");
+  if(!kat) return;
+  var acv = document.getElementById("acilisCv"), acx = acv.getContext("2d");
+  var AW = acv.width, AH = acv.height;
+  var YOL_Y = 118, BAS_X = 40, BIT_X = AW - 130, OLC = 5;
+
+  /* yenecekler: küçük nokta, arada büyük dosya ikonu */
+  var yem = [];
+  for(var i=0;i<18;i++){
+    yem.push({x: BAS_X + 130 + i*((BIT_X-BAS_X-120)/17), buyuk: (i%5===4)});
+  }
+
+  var basAn = performance.now(), yuklendi = false, bitti = false;
+  var MIN = 2600;
+  addEventListener("load", function(){ yuklendi = true; });
+
+  function kapat(){
+    if(bitti) return;
+    bitti = true;
+    kat.classList.add("bitti");
+    setTimeout(function(){ kat.style.display = "none"; }, 560);
+  }
+  /* JS bir yerde patlarsa site kilitli kalmasın */
+  setTimeout(kapat, 8000);
+
+  /* maskot + çene: ekran bölgesine pixel kama çiziyoruz */
+  function maskotCene(x, y, o, acilim){
+    for(var sy=0; sy<16; sy++){
+      for(var sx=0; sx<16; sx++){
+        var c = SPRITE[sy][sx]; if(c===".") continue;
+        acx.fillStyle = RENK[c];
+        acx.fillRect(x+sx*o, y+sy*o, o, o);
+      }
+    }
+    /* ekran alanı: satır 5-11, sütun 4-11 → sağa açılan kama */
+    for(var r=0; r<7; r++){
+      var derin = Math.round(acilim * (4 - Math.abs(r-3)));
+      for(var k=0; k<derin; k++){
+        acx.fillStyle = "#120e20";
+        acx.fillRect(x+(11-k)*o, y+(5+r)*o, o, o);
+      }
+    }
+  }
+
+  function ciz(an){
+    var gecen = an - basAn;
+    var p = Math.min(1, gecen/MIN);
+    if(!yuklendi) p = Math.min(p, .92);
+
+    acx.fillStyle = "#0d0a18"; acx.fillRect(0,0,AW,AH);
+    /* ızgara */
+    acx.fillStyle = "rgba(90,74,158,.07)";
+    for(var gx=0; gx<AW; gx+=16) acx.fillRect(gx,0,1,AH);
+    for(var gy=0; gy<AH; gy+=16) acx.fillRect(0,gy,AW,1);
+
+    /* yol çizgisi */
+    acx.fillStyle = "#241c42";
+    for(var lx=BAS_X; lx<BIT_X+60; lx+=12) acx.fillRect(lx, YOL_Y+42, 6, 3);
+
+    var mx = BAS_X + (BIT_X - BAS_X) * p;
+
+    /* yemler */
+    for(var j=0;j<yem.length;j++){
+      var y2 = yem[j];
+      if(y2.x < mx + 26) continue;                   /* yendi */
+      if(y2.buyuk){
+        acx.fillStyle = "#74ee15";
+        acx.fillRect(y2.x-9, YOL_Y+8, 18, 22);
+        acx.fillStyle = "#ffe700";
+        acx.fillRect(y2.x-9, YOL_Y+8, 18, 5);
+      } else {
+        var titre = Math.sin(an/160 + j)*1.5;
+        acx.fillStyle = "#4deeea";
+        acx.fillRect(y2.x-4, YOL_Y+14+titre, 8, 8);
+      }
+    }
+
+    /* maskot — çene açılıp kapanıyor, hafif zıplıyor */
+    var acilim = (Math.sin(an/70)+1)/2;
+    var zipla = Math.round(Math.sin(an/110))*2;
+    maskotCene(Math.round(mx-8*OLC), YOL_Y - 8*OLC + zipla, OLC, acilim);
+
+    /* yenenlerin izi */
+    acx.fillStyle = "rgba(255,61,129,.25)";
+    acx.fillRect(BAS_X, YOL_Y+42, Math.max(0, mx-BAS_X), 3);
+
+    document.getElementById("acilisYuzde").textContent = Math.round(p*100) + "%";
+
+    if(p >= 1 && yuklendi){ kapat(); return; }
+    requestAnimationFrame(ciz);
+  }
+  requestAnimationFrame(ciz);
+})();
 
 /* ==================== kopyala ==================== */
 $("#kopyalaBtn").onclick = function(){
