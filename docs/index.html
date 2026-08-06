@@ -120,6 +120,19 @@ h1{font-size:clamp(26px,7vw,52px);line-height:1.25;letter-spacing:3px;font-weigh
 .adim .metin{font-size:10px;color:var(--dim);line-height:2}
 .adim .metin b{color:var(--txt);display:block;margin-bottom:3px;font-size:10px}
 
+/* ---------- VİDEO ---------- */
+.videoKutu{padding:8px;margin-bottom:10px}
+.videoKutu video{display:block;width:100%;height:auto;background:#000;
+  image-rendering:pixelated}
+.videoAlt{color:var(--dim);font-size:8px;text-align:center;margin-bottom:30px}
+
+/* ---------- GÖMÜLÜ REHBER ---------- */
+.rehberKutu{padding:8px;margin-bottom:12px;position:relative}
+.rehberKutu iframe{display:block;width:100%;aspect-ratio:16/9;border:0;background:#000}
+.rehberAlt{display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  justify-content:space-between;margin-bottom:30px}
+.rehberAlt span{color:var(--dim);font-size:8px}
+
 /* ---------- NLE SEKMELERİ ---------- */
 .sekmeler{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:26px}
 .sekme{flex:1;min-width:150px;text-align:center;padding:16px 10px;cursor:pointer;
@@ -266,6 +279,7 @@ footer .yz b{color:var(--pink)}
     <a class="lnk" href="#ozellikler">ÖZELLİKLER</a>
     <a class="lnk" href="#kurulum">KURULUM</a>
     <a class="lnk" href="#nle">EKLENTİLER</a>
+    <a class="lnk" href="#nle">REHBER</a>
     <a class="lnk" href="#panel">CANLI PANEL</a>
     <a class="lnk" href="https://github.com/wusdo/indiragandi" target="_blank" rel="noopener">GITHUB</a>
   </div>
@@ -340,6 +354,12 @@ footer .yz b{color:var(--pink)}
     <h2><span class="no">02</span> KURULUM</h2>
     <p class="altbaslik">Tek komut. Homebrew, Python paketi, yönetici şifresi gerekmiyor.</p>
 
+    <div class="videoKutu px">
+      <video src="indiragandi.mp4" autoplay muted loop playsinline controls
+             preload="metadata" aria-label="İndiragandi tanıtım videosu"></video>
+    </div>
+    <p class="videoAlt">15 saniyede ne yaptığı</p>
+
     <div class="terminal">
       <div class="termbar">
         <span class="lamba l1"></span><span class="lamba l2"></span><span class="lamba l3"></span>
@@ -375,7 +395,15 @@ bash kur.sh</pre>
 <section id="nle">
   <div class="kap">
     <h2><span class="no">03</span> EKLENTİYİ AÇMAK</h2>
-    <p class="altbaslik">Kurulumdan sonra tek yapman gereken menüden açmak. Adımlara tıklayarak izleyebilirsin.</p>
+    <p class="altbaslik">Üç uygulamanın kurulumu baştan sona, altyazılı. Aşağıda adım adım da inceleyebilirsin.</p>
+
+    <div class="rehberKutu px">
+      <iframe src="tutorial.html?kompakt=1" loading="lazy" title="Kurulum rehberi animasyonu"></iframe>
+    </div>
+    <div class="rehberAlt">
+      <span>76 saniye · 6 bölüm · Premiere · After Effects · DaVinci Resolve</span>
+      <a class="btn kucuk" href="tutorial.html" target="_blank" rel="noopener">TAM EKRAN AÇ</a>
+    </div>
 
     <div class="sekmeler" id="sekmeler">
       <button class="sekme sec" data-nle="ppro"><span class="uy">Pr</span>PREMIERE</button>
@@ -410,13 +438,14 @@ bash kur.sh</pre>
                 <div class="pi" style="width:60%"></div>
                 <div class="pbtn"></div>
               </div>
-              <canvas class="imlec" id="imlec" width="11" height="15"></canvas>
               <div class="mockTerminal" id="mockTerm"></div>
               <div class="mockYeniden" id="mockYeni">
                 <span class="ikon" id="mockYeniIkon">Pr</span>
                 <span class="yaz">yeniden başlatılıyor...</span>
               </div>
             </div>
+            <!-- imleç .mock'un doğrudan çocuğu: koordinatlar #mock'a göre hesaplanıyor -->
+            <canvas class="imlec" id="imlec" width="11" height="15"></canvas>
           </div>
           <div class="oynatCubuk" id="oynat"></div>
         </div>
@@ -756,7 +785,12 @@ function adimGoster(i){
       if(aktifAdim !== 2) return;
       acilir.className = "acilirMenu gor";
       var h = $("#menuHedef"), m = $("#mock").getBoundingClientRect();
-      if(h){ var r = h.getBoundingClientRect(); acilir.style.left = (r.left - m.left) + "px"; }
+      if(h){
+        var r = h.getBoundingClientRect();
+        var aw = acilir.offsetWidth || 150;
+        /* menü pencerenin sağından taşmasın */
+        acilir.style.left = Math.max(4, Math.min(r.left - m.left, m.width - aw - 6)) + "px";
+      }
     }, 800);
     setTimeout(function(){
       if(aktifAdim !== 2) return;

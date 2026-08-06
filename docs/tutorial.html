@@ -731,6 +731,8 @@ for(var _i=0;_i<SAHNELER.length;_i++) TOPLAM += SAHNELER[_i].sure;
 
 var zaman = 0, duraklat = false, sonAn = 0;
 var par = new URLSearchParams(location.search);
+/* iframe içinde klavye ipuçlarını gizle */
+if(par.get("kompakt") === "1") document.getElementById("yardim").style.display = "none";
 var disaAktar = par.get("export") === "1";
 var kayitModu = par.get("rec") === "1";
 var FPS = parseInt(par.get("fps") || "60", 10);
