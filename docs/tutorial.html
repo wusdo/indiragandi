@@ -1,0 +1,845 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>İNDİRAGANDİ — Kurulum Rehberi (Motion Graphic)</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;background:#000;overflow:hidden}
+body{display:flex;align-items:center;justify-content:center;
+  font-family:Monaco,"Courier New",monospace;color:#8b82c4}
+#sahne{image-rendering:pixelated;max-width:100vw;max-height:100vh;
+  width:auto;height:auto;display:block}
+#yardim{position:fixed;left:14px;bottom:12px;font-size:10px;line-height:1.9;
+  color:#4a4270;z-index:5;pointer-events:none;letter-spacing:.5px}
+#yardim b{color:#8b82c4}
+#kayitRozet{position:fixed;right:14px;top:12px;font-size:11px;color:#ff4757;
+  letter-spacing:1px;display:none;z-index:5}
+#kayitRozet.gor{display:block}
+</style>
+</head>
+<body>
+<canvas id="sahne" width="1920" height="1080"></canvas>
+<div id="yardim">
+  <b>SPACE</b> duraklat · <b>R</b> baştan · <b>← →</b> 1sn · <b>1-6</b> bölüm · <b>F</b> tam ekran<br>
+  <b>?rec=1</b> webm kaydet · <b>?export=1</b> PNG dizisi · <b>?bolum=3</b> bölümden başla
+</div>
+<div id="kayitRozet">● KAYIT</div>
+
+<script>
+"use strict";
+/* ============================================================
+   İNDİRAGANDİ — KURULUM REHBERİ
+   1920x1080 · ~70 sn · pixel art motion graphic
+   ============================================================ */
+
+var cv = document.getElementById("sahne");
+var ctx = cv.getContext("2d", {alpha:false});
+var EN = 1920, BOY = 1080;
+
+var P = {
+  bg:"#0d0a18", bg2:"#151027", panel:"#1e1838", panel2:"#282050",
+  brd:"#5a4a9e", brd2:"#3a2f6b",
+  pembe:"#ff3d81", cam:"#4deeea", yesil:"#74ee15", sari:"#ffe700", kirmizi:"#ff4757",
+  txt:"#e9e6ff", dim:"#8b82c4", siyah:"#120e20"
+};
+
+/* ---------- yardımcılar ---------- */
+function S(v){ return Math.round(v/2)*2; }                 // 2px ızgaraya otur
+function K(x,y,w,h,r){ ctx.fillStyle=r; ctx.fillRect(S(x),S(y),S(w),S(h)); }
+
+/* adet kademede 0→1 (yumuşak değil, basamaklı) */
+function kademe(t,sure,adet){
+  if(sure<=0) return 1;
+  var o = Math.max(0, Math.min(1, t/sure));
+  adet = adet||8;
+  return Math.min(1, Math.floor(o*adet)/(adet-1));
+}
+function arada(t,a,b){ return t>=a && t<b; }
+
+/* kalın pixel kenarlı kutu */
+function kutu(x,y,w,h,dolgu,kenar,kal){
+  kal = kal||4; kenar = kenar||P.brd;
+  K(x-kal,y,w+kal*2,h,kenar);
+  K(x,y-kal,w,h+kal*2,kenar);
+  K(x,y,w,h,dolgu||P.panel);
+  K(x,y,w,kal,P.brd2); K(x,y+h-kal,w,kal,P.brd2);
+  K(x,y,kal,h,P.brd2); K(x+w-kal,y,kal,h,P.brd2);
+}
+
+/* harf harf yazı — adet ile daktilo etkisi */
+function yaz(metin,x,y,boy,renk,ayar){
+  ayar = ayar||{};
+  var ara = ayar.ara===undefined ? boy*0.72 : ayar.ara;
+  var adet = ayar.adet===undefined ? metin.length : ayar.adet;
+  ctx.font = boy+"px Monaco, 'Courier New', monospace";
+  ctx.textBaseline = "top";
+  ctx.fillStyle = renk;
+  var gx = x;
+  if(ayar.orta){
+    var tam = metin.length*ara;
+    gx = x - tam/2;
+  }
+  for(var i=0;i<Math.min(adet,metin.length);i++){
+    var c = metin[i];
+    if(c !== " "){
+      if(ayar.golge){
+        ctx.fillStyle = ayar.golge;
+        ctx.fillText(c, S(gx+ayar.golgeX||gx+4), S(y+(ayar.golgeY||4)));
+        ctx.fillStyle = renk;
+      }
+      ctx.fillText(c, S(gx), S(y));
+    }
+    gx += ara;
+  }
+  return gx;
+}
+function yaziEn(metin,boy,ara){ return metin.length*(ara===undefined?boy*0.72:ara); }
+
+/* ---------- maskot ---------- */
+var SPRITE = [
+"...K........K...","....K......K....",".....K....K.....","..KKKKKKKKKKKK..",
+"..KBBBBBBBBBBK..","..KBSSSSSSSSBK..","..KBSSSPPSSSBK..","..KBSSSPPSSSBK..",
+"..KBSPPPPPPSBK..","..KBSSPPPPSSBK..","..KBSSSPPSSSBK..","..KBSSSSSSSSBK..",
+"..KBBBBBBBBBBK..","..KBYBBBBBBYBK..","..KKKKKKKKKKKK..","...K.K....K.K..."];
+var SR = {K:P.siyah,B:"#6b4ea8",S:P.cam,P:P.pembe,Y:P.sari};
+
+function maskot(x,y,olcek,satir,kirp){
+  satir = satir===undefined ? 16 : satir;
+  for(var sy=0; sy<Math.min(16,satir); sy++){
+    for(var sx=0; sx<16; sx++){
+      var c = SPRITE[sy][sx]; if(c===".") continue;
+      if(c==="Y" && kirp) c = "P";
+      K(x+sx*olcek, y+sy*olcek, olcek, olcek, SR[c]);
+    }
+  }
+}
+
+/* ---------- imleç ---------- */
+var OK = ["K..........","KK.........","KWK........","KWWK.......","KWWWK......",
+          "KWWWWK.....","KWWWWWK....","KWWWWWWK...","KWWWWWWWK..","KWWWWKKKKK.",
+          "KWWKWK.....","KWK.KWK....","KK..KWK....","K....KWK...",".....KK...."];
+function imlec(x,y,o){
+  o = o||3;
+  for(var sy=0;sy<15;sy++)for(var sx=0;sx<11;sx++){
+    var c = OK[sy][sx]; if(c===".") continue;
+    K(x+sx*o, y+sy*o, o, o, c==="K"?"#0d0a18":"#ffffff");
+  }
+}
+
+/* ---------- arka plan ---------- */
+function zemin(){
+  K(0,0,EN,BOY,P.bg);
+  ctx.fillStyle = "rgba(90,74,158,.055)";
+  for(var x=0;x<EN;x+=24) ctx.fillRect(x,0,2,BOY);
+  for(var y=0;y<BOY;y+=24) ctx.fillRect(0,y,EN,2);
+}
+function taramaCizgi(){
+  ctx.fillStyle = "rgba(0,0,0,.16)";
+  for(var y=0;y<BOY;y+=4) ctx.fillRect(0,y,EN,2);
+}
+
+/* ---------- üst / alt çerçeve ---------- */
+function basligiCiz(no, ad){
+  K(0,0,EN,86,P.bg2);
+  K(0,84,EN,4,P.brd2);
+  maskot(40, 16, 3.4, 16, kirpDurum);
+  yaz("İNDİRAGANDİ", 118, 22, 22, P.sari, {ara:17});
+  yaz("KURULUM REHBERİ", 118, 50, 13, P.dim, {ara:10});
+  if(no){
+    var e = "BÖLÜM " + no;
+    K(EN-40-yaziEn(e,15,12)-28, 24, yaziEn(e,15,12)+28, 40, P.pembe);
+    yaz(e, EN-40-yaziEn(e,15,12)-14, 32, 15, "#ffffff", {ara:12});
+  }
+  if(ad) yaz(ad, EN-40-yaziEn(ad,16,13), 96, 16, P.cam, {ara:13});
+}
+
+function altyaziCiz(metin, vurgu){
+  if(!metin) return;
+  var y = BOY-176;
+  K(0,y,EN,4,P.brd2);
+  K(0,y+4,EN,110,"rgba(21,16,39,.96)");
+  yaz(metin, EN/2, y+38, 22, vurgu?P.sari:P.txt, {ara:16, orta:true});
+}
+
+function bolumCubugu(){
+  var toplam = 0, i;
+  for(i=0;i<SAHNELER.length;i++) toplam += SAHNELER[i].sure;
+  var y = BOY-46, gx = 60, kullanilabilir = EN-120, bosluk = 8;
+  var akan = 0;
+  for(i=0;i<SAHNELER.length;i++){
+    var w = (SAHNELER[i].sure/toplam)*(kullanilabilir - bosluk*(SAHNELER.length-1));
+    var gecti = zaman >= akan + SAHNELER[i].sure;
+    var icinde = zaman >= akan && !gecti;
+    K(gx, y, w, 10, gecti ? P.cam : P.brd2);
+    if(icinde){
+      var oran = (zaman-akan)/SAHNELER[i].sure;
+      K(gx, y, w*oran, 10, P.cam);
+      K(gx + w*oran - 4, y-4, 8, 18, P.sari);
+    }
+    gx += w + bosluk; akan += SAHNELER[i].sure;
+  }
+}
+
+/* ============================================================
+   SAHTE UYGULAMA PENCERESİ
+   ============================================================ */
+var UYG = {
+  ppro:    {ad:"Adobe Premiere", amblem:"Pr", renk:"#2a1a4d", yaziRenk:"#c9a6ff",
+            menu:["File","Edit","Clip","Sequence","Markers","Graphics","View","Window","Help"],
+            menuNo:7, acilir:["Workspaces","Extensions","Effect Controls","Effects","Libraries"],
+            acilirNo:1, altMenu:["Indiragandi","Adobe Color","Frame.io"],
+            hedefYer:"PROJECT"},
+  aeft:    {ad:"Adobe After Effects 2026", amblem:"Ae", renk:"#1a1440", yaziRenk:"#9b9bff",
+            menu:["File","Edit","Composition","Layer","Effect","Animation","View","Window","Help"],
+            menuNo:7, acilir:["Workspace","Extensions","Align","Character","Effects & Presets"],
+            acilirNo:1, altMenu:["Indiragandi","Adobe Color"],
+            hedefYer:"PROJECT"},
+  resolve: {ad:"DaVinci Resolve 21", amblem:"Rs", renk:"#3d1414", yaziRenk:"#ff9b9b",
+            menu:["File","Edit","Trim","Timeline","Clip","Mark","View","Playback","Workspace","Help"],
+            menuNo:8, acilir:["Layouts","Scripts","Console","Primary Workspace","Dual Screen"],
+            acilirNo:1, altMenu:["Indiragandi","Comp","Utility"],
+            hedefYer:"MEDIA POOL"}
+};
+
+var PX=250, PY=210, PW=1420, PH=620;   // pencere yerleşimi
+
+function pencereCiz(u, ayar){
+  ayar = ayar||{};
+  kutu(PX, PY, PW, PH, "#0a0814", P.brd, 4);
+
+  /* başlık çubuğu */
+  K(PX, PY, PW, 46, "#1a1526");
+  K(PX, PY+44, PW, 2, "#2b2340");
+  var lam = ["#ff5f57","#febc2e","#28c840"];
+  for(var i=0;i<3;i++) K(PX+22+i*26, PY+16, 14, 14, lam[i]);
+  yaz(u.ad, PX+124, PY+15, 15, P.dim, {ara:11});
+
+  /* menü çubuğu */
+  var my = PY+46;
+  K(PX, my, PW, 40, "#141020");
+  K(PX, my+38, PW, 2, "#2b2340");
+  var gx = PX+18, konum = [];
+  for(i=0;i<u.menu.length;i++){
+    var w = yaziEn(u.menu[i],15,11) + 24;
+    konum.push({x:gx, w:w});
+    if(i===u.menuNo && ayar.menuAcik) K(gx, my+4, w, 30, P.pembe);
+    yaz(u.menu[i], gx+12, my+11, 15, (i===u.menuNo && ayar.menuAcik) ? "#ffffff" : P.dim, {ara:11});
+    gx += w;
+  }
+  u._konum = konum;
+
+  /* çalışma alanı */
+  var ay = my+40, ah = PH-86;
+  K(PX, ay, PW, ah, "#0a0814");
+
+  /* sol: project / media pool kutusu */
+  var pw = 330;
+  K(PX+16, ay+16, pw, ah-32, "#120f1e");
+  K(PX+16, ay+16, pw, 30, "#1a1526");
+  yaz(u.hedefYer, PX+30, ay+23, 13, P.dim, {ara:10});
+  if(ayar.klipGeldi){
+    K(PX+30, ay+60, pw-28, 44, ayar.klipYaniyor ? P.sari : "#1d2a18");
+    K(PX+40, ay+70, 40, 24, ayar.klipYaniyor ? "#ffffff" : P.yesil);
+    yaz("bigbuck.mp4", PX+92, ay+72, 13, ayar.klipYaniyor ? "#0d0a18" : P.txt, {ara:10});
+  }
+
+  /* orta: önizleme */
+  var ox = PX+16+pw+16, ow = PW-pw-330-64;
+  K(ox, ay+16, ow, ah-190, "#080610");
+  if(ayar.klipGeldi){
+    K(ox+ow/2-150, ay+16+(ah-190)/2-90, 300, 180, "#22301c");
+    K(ox+ow/2-150, ay+16+(ah-190)/2-90, 300, 12, "#3a4a30");
+  }
+
+  /* alt: timeline */
+  var ty = ay+ah-160;
+  K(ox, ty, ow, 144, "#120f1e");
+  K(ox, ty, ow, 26, "#1a1526");
+  yaz("TIMELINE", ox+14, ty+6, 12, P.dim, {ara:9});
+  for(i=0;i<3;i++) K(ox+10, ty+40+i*34, ow-20, 26, "#181328");
+  if(ayar.timelineKlip){
+    var kw = Math.round((ow-40) * ayar.timelineKlip);
+    K(ox+16, ty+40, kw, 26, P.yesil);
+    K(ox+16, ty+74, kw, 26, "#2a4a1c");
+  }
+
+  /* sağ: eklenti paneli */
+  if(ayar.panelAcik !== undefined && ayar.panelAcik > 0){
+    var tamW = 300;
+    var w2 = Math.round(tamW * ayar.panelAcik);
+    var px2 = PX+PW-16-w2;
+    K(px2, ay+16, w2, ah-32, P.panel);
+    K(px2, ay+16, 4, ah-32, P.brd);
+    if(ayar.panelAcik > .55) panelIcerik(px2, ay+16, tamW, ah-32, ayar);
+  }
+  return {ay:ay, ah:ah};
+}
+
+/* eklenti panelinin içi */
+function panelIcerik(x,y,w,h,ayar){
+  maskot(x+18, y+18, 2.6, 16, kirpDurum);
+  yaz("İNDİRAGANDİ", x+72, y+22, 15, P.sari, {ara:12});
+  yaz("EKLENTI", x+72, y+44, 10, P.cam, {ara:8});
+
+  /* link kutusu */
+  K(x+18, y+86, w-36, 40, P.bg2);
+  var link = "https://youtube.com/...";
+  var adet = ayar.linkAdet===undefined ? link.length : ayar.linkAdet;
+  yaz(link, x+28, y+98, 13, P.yesil, {ara:9.4, adet:adet});
+  if(ayar.linkYaziyor && Math.floor(zaman*4)%2===0)
+    K(x+28+adet*9.4, y+97, 8, 18, P.yesil);
+
+  /* kalite ızgarası */
+  var etiket = ["MP3","720","1080","1440","4K","MAX"];
+  for(var i=0;i<6;i++){
+    var kx = x+18 + (i%3)*((w-36)/3), ky = y+146 + Math.floor(i/3)*54;
+    var kw = (w-36)/3 - 8;
+    var secili = (ayar.kaliteSec===i);
+    K(kx, ky, kw, 46, secili ? P.pembe : P.panel2);
+    if(secili) K(kx+5, ky+5, 8, 8, P.sari);
+    yaz(etiket[i], kx+kw/2, ky+14, 14, secili ? "#ffffff" : P.cam, {ara:11, orta:true});
+  }
+
+  /* indir butonu */
+  var by = y+266;
+  K(x+18, by, w-36, 52, ayar.butonBasili ? P.sari : P.yesil);
+  yaz("▼ INDIR ▼", x+w/2, by+16, 17, "#0d0a18", {ara:13, orta:true});
+
+  /* ilerleme */
+  if(ayar.yuzde !== undefined){
+    var iy = by+76, blok = 12, bw = (w-36-(blok-1)*4)/blok;
+    var dolu = Math.round(ayar.yuzde/100*blok);
+    for(var j=0;j<blok;j++){
+      K(x+18+j*(bw+4), iy, bw, 26, j<dolu ? P.yesil : P.bg2);
+      if(j<dolu) K(x+18+j*(bw+4), iy, bw, 4, P.sari);
+    }
+    yaz(Math.round(ayar.yuzde)+"%", x+18, iy+38, 20, P.sari, {ara:15});
+    if(ayar.asama) yaz(ayar.asama, x+18, iy+70, 11, P.cam, {ara:8});
+  }
+}
+
+/* açılır menü */
+function acilirCiz(u, ayar){
+  var k = u._konum[u.menuNo]; if(!k) return;
+  var mx = k.x, my = PY+86;
+  var w = 300, sy = 12;
+  K(mx, my, w, u.acilir.length*40+24, "#1a1526");
+  K(mx, my, w, 4, P.brd); K(mx, my+u.acilir.length*40+20, w, 4, P.brd);
+  K(mx, my, 4, u.acilir.length*40+24, P.brd); K(mx+w-4, my, 4, u.acilir.length*40+24, P.brd);
+  for(var i=0;i<u.acilir.length;i++){
+    var yy = my+sy+i*40;
+    var vur = (i===u.acilirNo && ayar.altVurgu);
+    if(vur) K(mx+4, yy-4, w-8, 38, P.cam);
+    yaz(u.acilir[i], mx+22, yy+4, 15, vur ? "#0d0a18" : P.dim, {ara:11});
+    if(i===u.acilirNo) yaz("›", mx+w-32, yy+4, 15, vur ? "#0d0a18" : P.dim, {ara:11});
+  }
+  /* alt menü */
+  if(ayar.altMenu){
+    var ax = mx+w, ay2 = my+sy+u.acilirNo*40-8;
+    var aw = 280;
+    K(ax, ay2, aw, u.altMenu.length*40+24, "#1a1526");
+    K(ax, ay2, aw, 4, P.brd); K(ax, ay2+u.altMenu.length*40+20, aw, 4, P.brd);
+    K(ax, ay2, 4, u.altMenu.length*40+24, P.brd); K(ax+aw-4, ay2, 4, u.altMenu.length*40+24, P.brd);
+    for(i=0;i<u.altMenu.length;i++){
+      var yy2 = ay2+12+i*40;
+      var vur2 = (i===0 && ayar.hedefVurgu);
+      if(vur2) K(ax+4, yy2-4, aw-8, 38, P.pembe);
+      yaz(u.altMenu[i], ax+22, yy2+4, 15, vur2 ? "#ffffff" : P.dim, {ara:11});
+    }
+    return {x:ax+40, y:ay2+12+8};
+  }
+  return {x:mx+w-60, y:my+sy+u.acilirNo*40};
+}
+
+/* ============================================================
+   ORTAK: menü açma koreografisi (0 → 1 arası ilerleme)
+   ============================================================ */
+function menuKoreografi(u, t, sure, ekAyar){
+  var a = ekAyar || {};
+  var o = t/sure;
+  var ayar = {menuAcik:false, panelAcik:0};
+  for(var k in a) ayar[k] = a[k];
+
+  var ix = PX+80, iy = PY+PH-140;
+
+  if(o < .18){
+    var ilerle = kademe(t, sure*.18, 6);
+    ix = PX+80 + (u._konum ? (u._konum[u.menuNo].x - PX - 80 + 26) : 400) * ilerle;
+    iy = PY+PH-140 + (PY+66 - (PY+PH-140)) * ilerle;
+    pencereCiz(u, ayar);
+  } else if(o < .36){
+    ayar.menuAcik = true;
+    pencereCiz(u, ayar);
+    ix = u._konum[u.menuNo].x + 26; iy = PY+66;
+  } else if(o < .56){
+    ayar.menuAcik = true;
+    pencereCiz(u, ayar);
+    var hedef = acilirCiz(u, {altVurgu:true});
+    var il2 = kademe(t - sure*.36, sure*.20, 5);
+    ix = u._konum[u.menuNo].x + 26 + (hedef.x - u._konum[u.menuNo].x - 26) * il2;
+    iy = PY+66 + (hedef.y - PY - 66) * il2;
+  } else if(o < .74){
+    ayar.menuAcik = true;
+    pencereCiz(u, ayar);
+    var h2 = acilirCiz(u, {altVurgu:true, altMenu:true, hedefVurgu:(o>.64)});
+    ix = h2.x; iy = h2.y;
+  } else {
+    ayar.panelAcik = kademe(t - sure*.74, sure*.20, 6);
+    pencereCiz(u, ayar);
+    ix = PX+PW-260; iy = PY+200;
+  }
+  imlec(ix, iy, 3);
+  return ayar;
+}
+
+/* ============================================================
+   SAHNELER
+   ============================================================ */
+var kirpDurum = 0;
+
+var SAHNELER = [
+
+/* ---------- 0 · GİRİŞ ---------- */
+{ ad:"GİRİŞ", sure:6.0, ciz:function(t){
+  zemin();
+  if(t < .9){                                   /* CRT açılışı */
+    var a = kademe(t, .9, 7);
+    var h = Math.max(4, BOY*a);
+    K(0,0,EN,BOY,"#000000");
+    K(0,(BOY-h)/2,EN,h,P.bg);
+    if(a<1) return;
+  }
+  var mt = t-.9;
+  var satir = Math.min(16, Math.floor(mt/0.055));
+  maskot(EN/2-16*7, 150, 14, satir, kirpDurum);
+  if(mt > .95){
+    var ad = "İNDİRAGANDİ";
+    var adet = Math.floor((mt-.95)/0.07);
+    yaz(ad, EN/2, 430, 74, P.sari,
+        {ara:56, orta:true, adet:adet, golge:P.pembe, golgeY:6});
+  }
+  if(mt > 1.9){
+    yaz("KURULUM REHBERİ", EN/2, 560, 30, P.cam,
+        {ara:23, orta:true, adet:Math.floor((mt-1.9)/0.05)});
+  }
+  if(mt > 2.9){
+    var s = ["PREMIERE","AFTER EFFECTS","DAVINCI RESOLVE"];
+    for(var i=0;i<3;i++){
+      if(mt < 2.9 + i*.35) continue;
+      var w = 380, gx = EN/2 - (3*w + 2*30)/2 + i*(w+30);
+      kutu(gx, 660, w, 92, P.panel, P.brd, 4);
+      yaz(s[i], gx+w/2, 692, 20, P.txt, {ara:15, orta:true});
+    }
+  }
+  if(mt > 4.2) yaz("6 BÖLÜM · 70 SANİYE", EN/2, 830, 16, P.dim, {ara:12, orta:true});
+}, altyazi:function(t){
+  if(t<2.5) return null;
+  if(t<4.5) return "Üç uygulamaya da tek kurulumla giriyor";
+  return "Sırayla anlatıyoruz";
+}},
+
+/* ---------- 1 · İNDİR & KUR ---------- */
+{ ad:"İNDİR VE KUR", sure:15.0, ciz:function(t){
+  zemin(); basligiCiz(1, "TERMINAL");
+
+  var tx = 300, ty = 220, tw = 1320, th = 620;
+  kutu(tx, ty, tw, th, "#080610", P.brd, 4);
+  K(tx, ty, tw, 44, P.panel);
+  K(tx, ty+42, tw, 2, P.brd2);
+  var lam = ["#ff5f57","#febc2e","#28c840"];
+  for(var i=0;i<3;i++) K(tx+20+i*26, ty+15, 14, 14, lam[i]);
+  yaz("Terminal", tx+120, ty+14, 14, P.dim, {ara:10});
+
+  var satirlar = [
+    {t:0.4,  m:"$ git clone https://github.com/wusdo/indiragandi.git", r:P.txt, yaz:true},
+    {t:2.4,  m:"  Cloning into 'indiragandi'... done.", r:P.dim},
+    {t:3.0,  m:"$ cd indiragandi", r:P.txt, yaz:true},
+    {t:3.9,  m:"$ bash kur.sh", r:P.txt, yaz:true},
+    {t:4.9,  m:"", r:P.dim},
+    {t:5.2,  m:"  [1/6] yt-dlp indiriliyor...        ✓", r:P.yesil},
+    {t:6.0,  m:"  [2/6] ffmpeg aranıyor...           ✓", r:P.yesil},
+    {t:6.8,  m:"  [3/6] motor ve panel...            ✓", r:P.yesil},
+    {t:7.6,  m:"  [4/6] PATH ayarlanıyor...          ✓", r:P.yesil},
+    {t:8.4,  m:"  [5/6] İndiragandi.app...           ✓", r:P.yesil},
+    {t:9.2,  m:"  [6/6] Premiere · AE · Resolve...   ✓", r:P.yesil},
+    {t:10.2, m:"", r:P.dim},
+    {t:10.5, m:"  ════════════════════════════════", r:P.brd},
+    {t:10.9, m:"   KURULDU", r:P.sari},
+    {t:11.4, m:"   Uygulamaları yeniden başlat.", r:P.cam},
+    {t:11.9, m:"  ════════════════════════════════", r:P.brd}
+  ];
+
+  var gy = ty+72;
+  for(i=0;i<satirlar.length;i++){
+    var s = satirlar[i];
+    if(t < s.t) break;
+    var adet = s.yaz ? Math.floor((t-s.t)/0.028) : s.m.length;
+    yaz(s.m, tx+34, gy, 22, s.r, {ara:15.4, adet:adet});
+    gy += 34;
+  }
+  /* imleç */
+  if(t < 12.2 && Math.floor(t*3)%2===0){
+    var son = satirlar[Math.max(0,i-1)];
+    var uz = Math.min(son.m.length, son.yaz ? Math.floor((t-son.t)/0.028) : son.m.length);
+    K(tx+34+uz*15.4, gy-32, 12, 24, P.yesil);
+  }
+
+  if(t > 12.4){
+    var a = kademe(t-12.4, .5, 5);
+    var bw = 900, bh = 130;
+    kutu(EN/2-bw/2, 700 + (1-a)*40, bw, bh, P.panel, P.yesil, 4);
+    yaz("sudo YOK · HOMEBREW YOK · TEK KOMUT", EN/2, 738, 24, P.yesil, {ara:18, orta:true});
+    yaz("kurulu olmayan uygulama atlanır", EN/2, 776, 15, P.dim, {ara:11, orta:true});
+  }
+}, altyazi:function(t){
+  if(t<2.3) return "Depoyu indir";
+  if(t<3.9) return "Klasöre gir";
+  if(t<5.0) return "Kurulumu başlat — tek komut";
+  if(t<10.2) return "yt-dlp, ffmpeg ve üç eklenti birden kuruluyor";
+  if(t<12.4) return "Bitti. Şimdi uygulamaları yeniden başlat";
+  return "Yönetici şifresi veya Homebrew gerekmiyor";
+}},
+
+/* ---------- 2 · PREMIERE ---------- */
+{ ad:"PREMIERE", sure:17.0, ciz:function(t){
+  zemin(); basligiCiz(2, "Window › Extensions › Indiragandi");
+  var u = UYG.ppro;
+
+  if(t < 2.2){                                    /* yeniden başlat */
+    pencereCiz(u, {});
+    var a = kademe(t, .5, 4);
+    ctx.fillStyle = "rgba(13,10,24,"+(0.55+0.35*a)+")";
+    ctx.fillRect(0,0,EN,BOY);
+    var s = 120;
+    K(EN/2-s/2, 400, s, s, u.renk);
+    yaz(u.amblem, EN/2, 428, 62, u.yaziRenk, {ara:44, orta:true});
+    yaz("TAMAMEN KAPAT, TEKRAR AÇ", EN/2, 570, 24, P.sari, {ara:18, orta:true});
+    yaz("eklentiler sadece açılışta taranır", EN/2, 612, 15, P.dim, {ara:11, orta:true});
+  }
+  else if(t < 8.0){                               /* menüden açma */
+    pencereCiz(u, {});                            /* konum tablosu için */
+    menuKoreografi(u, t-2.2, 5.8, {});
+  }
+  else {                                          /* panelde iş */
+    var lt = t-8.0;
+    var ayar = {panelAcik:1, kaliteSec:2};
+    if(lt < 1.6){ ayar.linkAdet = Math.floor(lt/0.06); ayar.linkYaziyor = true; }
+    else ayar.linkAdet = 99;
+
+    if(lt >= 1.9 && lt < 2.3) ayar.kaliteSec = 2;
+    if(lt >= 2.6 && lt < 2.9) ayar.butonBasili = true;
+
+    if(lt >= 2.9){
+      var ilerle = Math.min(100, (lt-2.9)/3.4*100);
+      ayar.yuzde = ilerle;
+      ayar.asama = ilerle < 55 ? "Görüntü indiriliyor (1/2)"
+                 : ilerle < 92 ? "Ses indiriliyor (2/2)"
+                 : "Birleştiriliyor...";
+      if(ilerle >= 100){ ayar.asama = "✓ TAMAMLANDI"; }
+    }
+    if(lt >= 6.5){ ayar.klipGeldi = true; ayar.klipYaniyor = (lt < 6.9); }
+    if(lt >= 7.4) ayar.timelineKlip = Math.min(.62, (lt-7.4)/0.5*.62);
+
+    pencereCiz(u, ayar);
+
+    /* dosya uçuşu: panelden project'e */
+    if(lt >= 6.1 && lt < 6.6){
+      var o = kademe(lt-6.1, .5, 5);
+      var sx = PX+PW-160, sy = PY+520;
+      var hx = PX+180, hy = PY+200;
+      var fx = sx + (hx-sx)*o, fy = sy + (hy-sy)*o - Math.sin(o*Math.PI)*140;
+      K(fx-26, fy-32, 52, 64, P.yesil);
+      K(fx-26, fy-32, 52, 10, P.sari);
+      yaz("MP4", fx, fy-6, 13, "#0d0a18", {ara:10, orta:true});
+    }
+    if(lt >= 8.2){
+      var a2 = kademe(lt-8.2, .4, 4);
+      kutu(EN/2-460, 878+(1-a2)*30, 920, 96, P.panel, P.yesil, 4);
+      yaz("KLİP AKTİF BIN'E DÜŞTÜ", EN/2, 906, 22, P.yesil, {ara:17, orta:true});
+    }
+  }
+}, altyazi:function(t){
+  if(t<2.2) return "Önce Premiere'i tamamen kapatıp aç";
+  if(t<4.5) return "Window menüsünü aç";
+  if(t<6.4) return "Extensions alt menüsüne gel";
+  if(t<7.4) return "Indiragandi'yi seç";
+  if(t<8.6) return "Panel sağda açılır — sürükleyip sabitleyebilirsin";
+  if(t<10.0) return "Linki yapıştır";
+  if(t<11.0) return "Kaliteyi seç";
+  if(t<14.5) return "İndir'e bas, gerisini o halleder";
+  return "Dosya doğrudan aktif bin'e düşer";
+}},
+
+/* ---------- 3 · AFTER EFFECTS ---------- */
+{ ad:"AFTER EFFECTS", sure:13.0, ciz:function(t){
+  zemin(); basligiCiz(3, "Window › Extensions › Indiragandi");
+  var u = UYG.aeft;
+
+  if(t < 1.6){
+    pencereCiz(u, {});
+    ctx.fillStyle = "rgba(13,10,24,.86)"; ctx.fillRect(0,0,EN,BOY);
+    K(EN/2-60, 400, 120, 120, u.renk);
+    yaz(u.amblem, EN/2, 428, 62, u.yaziRenk, {ara:44, orta:true});
+    yaz("AYNI KURULUM · AYNI MENÜ YOLU", EN/2, 570, 24, P.cam, {ara:18, orta:true});
+    yaz("ayrı bir işlem yapman gerekmiyor", EN/2, 612, 15, P.dim, {ara:11, orta:true});
+  }
+  else if(t < 6.6){
+    pencereCiz(u, {});
+    menuKoreografi(u, t-1.6, 5.0, {});
+  }
+  else {
+    var lt = t-6.6;
+    var ayar = {panelAcik:1, kaliteSec:4, linkAdet:99};
+    if(lt >= 0.5){
+      var ilerle = Math.min(100, (lt-0.5)/2.6*100);
+      ayar.yuzde = ilerle;
+      ayar.asama = ilerle < 100 ? "Görüntü indiriliyor (1/2)" : "✓ TAMAMLANDI";
+    }
+    if(lt >= 3.6){ ayar.klipGeldi = true; ayar.klipYaniyor = (lt < 4.0); }
+    pencereCiz(u, ayar);
+
+    if(lt >= 3.2 && lt < 3.7){
+      var o = kademe(lt-3.2, .5, 5);
+      var sx = PX+PW-160, sy = PY+480, hx = PX+180, hy = PY+200;
+      var fx = sx+(hx-sx)*o, fy = sy+(hy-sy)*o - Math.sin(o*Math.PI)*150;
+      K(fx-26, fy-32, 52, 64, P.yesil); K(fx-26, fy-32, 52, 10, P.sari);
+    }
+    if(lt >= 4.4){
+      var a2 = kademe(lt-4.4, .4, 4);
+      kutu(EN/2-500, 878+(1-a2)*30, 1000, 96, P.panel, P.yesil, 4);
+      yaz("PROJECT PANELİNE DÜŞTÜ · AÇIK COMP'A KATMAN OLARAK DA EKLENİR",
+          EN/2, 908, 17, P.yesil, {ara:13, orta:true});
+    }
+  }
+}, altyazi:function(t){
+  if(t<1.6) return "After Effects için ayrı kurulum yok";
+  if(t<3.6) return "Window menüsü";
+  if(t<5.2) return "Extensions › Indiragandi";
+  if(t<7.2) return "Panel aynı şekilde açılır";
+  if(t<10.2) return "4K seçip indir";
+  return "Klip Project paneline girer";
+}},
+
+/* ---------- 4 · DAVINCI RESOLVE ---------- */
+{ ad:"DAVINCI RESOLVE", sure:15.0, ciz:function(t){
+  zemin(); basligiCiz(4, "Workspace › Scripts › Indiragandi");
+  var u = UYG.resolve;
+
+  if(t < 3.4){                                    /* python uyarısı */
+    var a = kademe(t, .5, 5);
+    kutu(EN/2-620, 300+(1-a)*30, 1240, 300, P.panel, P.sari, 4);
+    yaz("⚠  ÖNCE PYTHON 3", EN/2, 340, 34, P.sari, {ara:26, orta:true});
+    yaz("Resolve, .py betiklerini ancak sistemde Python 3 varsa listeler.",
+        EN/2, 410, 19, P.txt, {ara:14, orta:true});
+    yaz("Xcode'un komut satırı Python'unu görmez.",
+        EN/2, 446, 19, P.dim, {ara:14, orta:true});
+    if(t > 1.4){
+      K(EN/2-300, 500, 600, 60, P.bg2);
+      yaz("python.org/downloads", EN/2, 516, 24, P.cam, {ara:18, orta:true});
+    }
+    if(t > 2.4) yaz("kur, sonra Resolve'u yeniden başlat", EN/2, 620, 17, P.dim, {ara:13, orta:true});
+  }
+  else if(t < 9.0){
+    pencereCiz(u, {});
+    menuKoreografi(u, t-3.4, 5.6, {});
+  }
+  else {
+    var lt = t-9.0;
+    var ayar = {panelAcik:1, kaliteSec:2, linkAdet:99};
+    if(lt >= 0.6){
+      var ilerle = Math.min(100, (lt-0.6)/2.8*100);
+      ayar.yuzde = ilerle;
+      ayar.asama = ilerle < 100 ? "İndiriliyor..." : "✓ TAMAMLANDI";
+    }
+    if(lt >= 4.0){ ayar.klipGeldi = true; ayar.klipYaniyor = (lt < 4.4); }
+    if(lt >= 4.8) ayar.timelineKlip = Math.min(.5, (lt-4.8)/0.5*.5);
+    pencereCiz(u, ayar);
+
+    if(lt >= 3.6 && lt < 4.1){
+      var o = kademe(lt-3.6, .5, 5);
+      var sx = PX+PW-160, sy = PY+480, hx = PX+180, hy = PY+200;
+      var fx = sx+(hx-sx)*o, fy = sy+(hy-sy)*o - Math.sin(o*Math.PI)*150;
+      K(fx-26, fy-32, 52, 64, P.yesil); K(fx-26, fy-32, 52, 10, P.sari);
+    }
+    if(lt >= 5.2){
+      var a2 = kademe(lt-5.2, .4, 4);
+      kutu(EN/2-500, 878+(1-a2)*30, 1000, 96, P.panel, P.yesil, 4);
+      yaz("MEDIA POOL'A EKLENDİ · TIMELINE'A APPEND SEÇENEĞİ VAR",
+          EN/2, 908, 18, P.yesil, {ara:14, orta:true});
+    }
+  }
+}, altyazi:function(t){
+  if(t<3.4) return "Resolve için tek ek adım: Python 3";
+  if(t<5.6) return "Workspace menüsünü aç";
+  if(t<7.4) return "Scripts alt menüsü";
+  if(t<9.4) return "Indiragandi'yi çalıştır";
+  if(t<12.5) return "Pencere açılır, indirme başlar";
+  return "Klip Media Pool'a eklenir";
+}},
+
+/* ---------- 5 · ÖZET ---------- */
+{ ad:"ÖZET", sure:10.0, ciz:function(t){
+  zemin(); basligiCiz(null, null);
+  maskot(EN/2-16*5, 130, 10, 16, kirpDurum);
+  yaz("ÜÇ UYGULAMA · TEK KURULUM", EN/2, 320, 34, P.sari,
+      {ara:26, orta:true, adet:Math.floor(t/0.04)});
+
+  var kayit = [
+    ["Pr", "PREMIERE",    "Window › Extensions › Indiragandi", "#2a1a4d", "#c9a6ff"],
+    ["Ae", "AFTER EFFECTS",   "Window › Extensions › Indiragandi", "#1a1440", "#9b9bff"],
+    ["Rs", "DAVINCI RESOLVE", "Workspace › Scripts › Indiragandi",  "#3d1414", "#ff9b9b"]
+  ];
+  for(var i=0;i<3;i++){
+    if(t < 1.2 + i*.45) continue;
+    var a = kademe(t-(1.2+i*.45), .35, 4);
+    var y = 420 + i*128;
+    kutu(EN/2-680, y+(1-a)*24, 1360, 104, P.panel, P.brd, 4);
+    K(EN/2-660, y+18+(1-a)*24, 68, 68, kayit[i][3]);
+    yaz(kayit[i][0], EN/2-626, y+34+(1-a)*24, 32, kayit[i][4], {ara:24, orta:true});
+    yaz(kayit[i][1], EN/2-566, y+26+(1-a)*24, 21, P.txt, {ara:16});
+    yaz(kayit[i][2], EN/2-566, y+58+(1-a)*24, 16, P.cam, {ara:12});
+  }
+
+  if(t > 3.4){
+    yaz("github.com/wusdo/indiragandi", EN/2, 838, 22, P.dim,
+        {ara:16, orta:true, adet:Math.floor((t-3.4)/0.035)});
+  }
+  if(t > 5.2){
+    var a3 = kademe(t-5.2, .4, 4);
+    yaz("İNDİR.  KURGUYA DÜŞSÜN.", EN/2, 908+(1-a3)*20, 30, P.pembe, {ara:23, orta:true});
+  }
+  if(t > 9.2){                                   /* CRT kapanış */
+    var kap = kademe(t-9.2, .8, 7);
+    var h = BOY*(1-kap);
+    K(0,0,EN,(BOY-h)/2,"#000000");
+    K(0,(BOY+h)/2,EN,(BOY-h)/2,"#000000");
+  }
+}, altyazi:function(t){
+  if(t<3.4) return null;
+  if(t<5.2) return "Kaynak kod ve kurulum: github.com/wusdo/indiragandi";
+  return null;
+}}
+];
+
+/* ============================================================
+   OYNATICI
+   ============================================================ */
+var TOPLAM = 0;
+for(var _i=0;_i<SAHNELER.length;_i++) TOPLAM += SAHNELER[_i].sure;
+
+var zaman = 0, duraklat = false, sonAn = 0;
+var par = new URLSearchParams(location.search);
+var disaAktar = par.get("export") === "1";
+var kayitModu = par.get("rec") === "1";
+var FPS = parseInt(par.get("fps") || "60", 10);
+var karNo = 0;
+
+if(par.get("bolum")){
+  var b = parseInt(par.get("bolum"),10)-1, akan=0;
+  for(var j=0;j<SAHNELER.length && j<b;j++) akan += SAHNELER[j].sure;
+  zaman = akan;
+}
+
+function aktifSahne(){
+  var akan = 0;
+  for(var i=0;i<SAHNELER.length;i++){
+    if(zaman < akan + SAHNELER[i].sure) return {s:SAHNELER[i], t:zaman-akan, i:i};
+    akan += SAHNELER[i].sure;
+  }
+  var son = SAHNELER[SAHNELER.length-1];
+  return {s:son, t:son.sure-0.001, i:SAHNELER.length-1};
+}
+
+function cizKare(){
+  ctx.imageSmoothingEnabled = false;
+  kirpDurum = Math.floor(zaman/0.31) % 2;
+  var a = aktifSahne();
+  a.s.ciz(a.t);
+  var alt = a.s.altyazi ? a.s.altyazi(a.t) : null;
+  altyaziCiz(alt);
+  bolumCubugu();
+  taramaCizgi();
+}
+
+function dongu(an){
+  if(!sonAn) sonAn = an;
+  var dt = (an - sonAn)/1000; sonAn = an;
+  if(!duraklat && !disaAktar){
+    zaman += Math.min(dt, .1);
+    if(zaman >= TOPLAM) zaman -= TOPLAM;
+  }
+  cizKare();
+  requestAnimationFrame(dongu);
+}
+
+/* ---------- klavye ---------- */
+addEventListener("keydown", function(e){
+  if(e.code === "Space"){ duraklat = !duraklat; e.preventDefault(); }
+  else if(e.key === "r" || e.key === "R"){ zaman = 0; }
+  else if(e.key === "ArrowRight"){ zaman = Math.min(TOPLAM-.01, zaman+1); }
+  else if(e.key === "ArrowLeft"){ zaman = Math.max(0, zaman-1); }
+  else if(e.key === "f" || e.key === "F"){
+    if(document.fullscreenElement) document.exitFullscreen();
+    else document.documentElement.requestFullscreen();
+  }
+  else if(e.key >= "1" && e.key <= "6"){
+    var n = parseInt(e.key,10)-1, akan = 0;
+    for(var i=0;i<SAHNELER.length && i<n;i++) akan += SAHNELER[i].sure;
+    zaman = akan;
+  }
+});
+
+/* ---------- webm kaydı ---------- */
+function kayitBaslat(){
+  var akis = cv.captureStream(FPS);
+  var tip = MediaRecorder.isTypeSupported("video/webm;codecs=vp9")
+            ? "video/webm;codecs=vp9" : "video/webm";
+  var kayit = new MediaRecorder(akis, {mimeType:tip, videoBitsPerSecond: 24000000});
+  var parcalar = [];
+  kayit.ondataavailable = function(e){ if(e.data.size) parcalar.push(e.data); };
+  kayit.onstop = function(){
+    var blob = new Blob(parcalar, {type:"video/webm"});
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "indiragandi-kurulum-rehberi.webm";
+    a.click();
+    document.getElementById("kayitRozet").classList.remove("gor");
+  };
+  zaman = 0;
+  document.getElementById("kayitRozet").classList.add("gor");
+  kayit.start();
+  setTimeout(function(){ kayit.stop(); }, (TOPLAM+0.3)*1000);
+}
+
+/* ---------- PNG dizisi ---------- */
+function kareDisaAktar(){
+  var adim = 1/FPS;
+  var bas = parseFloat(par.get("bas") || "0");
+  var bit = parseFloat(par.get("bit") || String(TOPLAM));
+  zaman = bas;
+  karNo = Math.round(bas*FPS);
+  function sonraki(){
+    if(zaman >= bit){ document.title = "BİTTİ · " + karNo + " kare"; return; }
+    cizKare();
+    cv.toBlob(function(blob){
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = "kare_" + String(karNo).padStart(5,"0") + ".png";
+      a.click();
+      URL.revokeObjectURL(a.href);
+      karNo++; zaman += adim;
+      document.title = karNo + " / " + Math.round((bit-bas)*FPS);
+      setTimeout(sonraki, 12);
+    }, "image/png");
+  }
+  sonraki();
+}
+
+requestAnimationFrame(dongu);
+if(kayitModu) setTimeout(kayitBaslat, 400);
+if(disaAktar) setTimeout(kareDisaAktar, 400);
+</script>
+</body>
+</html>

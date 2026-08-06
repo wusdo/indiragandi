@@ -1,7 +1,7 @@
 # ▼ İNDİRAGANDİ ▼
 
 **Pixel art temalı video indirme makinesi — Mac için.**
-YouTube, Instagram, TikTok, X ve 1000+ siteden video indirir. İndirdiğini **doğrudan Premiere Pro, After Effects veya DaVinci Resolve projene atar.**
+YouTube, Instagram, TikTok, X ve 1000+ siteden video indirir. İndirdiğini **doğrudan Premiere, After Effects veya DaVinci Resolve projene atar.**
 
 ```
    ...K........K...
@@ -21,7 +21,7 @@ YouTube, Instagram, TikTok, X ve 1000+ siteden video indirir. İndirdiğini **do
 | | |
 |---|---|
 | **Tarayıcı paneli** | Pixel art arayüz, blok ilerleme çubuğu, 8-bit ses efektleri |
-| **Premiere Pro** | İndirir → aktif bin'e atar → istersen timeline'a yerleştirir |
+| **Premiere** | İndirir → aktif bin'e atar → istersen timeline'a yerleştirir |
 | **After Effects** | İndirir → Project paneline atar → istersen açık comp'a katman ekler |
 | **DaVinci Resolve** | İndirir → Media Pool'a atar → istersen timeline'a append eder |
 | **Terminal** | `indir <link>` tek satırda indirir |
@@ -57,7 +57,7 @@ Linki kopyala → **PANO** → kalite seç → **İNDİR**.
 
 | Uygulama | Menü |
 |---|---|
-| Premiere Pro | Window → Extensions → Indiragandi |
+| Premiere | Window → Extensions → Indiragandi |
 | After Effects | Window → Extensions → Indiragandi |
 | DaVinci Resolve | Workspace → Scripts → Indiragandi |
 
@@ -140,7 +140,7 @@ kur.sh                    kurulum
 
 - macOS (Apple Silicon veya Intel)
 - Python 3 (macOS'ta hazır gelir)
-- Premiere Pro / After Effects 2020+ · DaVinci Resolve 17+ (eklentiler için, zorunlu değil)
+- Premiere / After Effects 2020+ · DaVinci Resolve 17+ (eklentiler için, zorunlu değil)
 
 ---
 

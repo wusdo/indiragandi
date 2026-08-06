@@ -1,6 +1,6 @@
 /*
  * İNDİRAGANDİ — ExtendScript köprüsü
- * Premiere Pro ve After Effects için içe aktarma
+ * Premiere ve After Effects için içe aktarma
  */
 
 function igHangiUygulama() {
@@ -45,7 +45,7 @@ function igIceAktar(yol, zamanCizgi) {
 
         var uygulama = igHangiUygulama();
 
-        /* ---------------- PREMIERE PRO ---------------- */
+        /* ---------------- PREMIERE ---------------- */
         if (uygulama === "PPRO") {
             var hedefBin = app.project.rootItem;
             try {
