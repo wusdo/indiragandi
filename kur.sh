@@ -20,14 +20,14 @@ echo
 mkdir -p "$BIN" "$UYG" "$HOME/Applications" "$HOME/Downloads/İndirilenler"
 
 # ---------------------------------------------- 1. yt-dlp
-echo "[1/6] yt-dlp indiriliyor..."
+echo "[1/7] yt-dlp indiriliyor..."
 curl -sL -o "$BIN/yt-dlp" \
   https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp_macos
 chmod +x "$BIN/yt-dlp"
 echo "      ✓ $("$BIN/yt-dlp" --version)"
 
 # ---------------------------------------------- 2. ffmpeg
-echo "[2/6] ffmpeg aranıyor..."
+echo "[2/7] ffmpeg aranıyor..."
 if [ -x "$BIN/ffmpeg" ]; then
   echo "      ✓ zaten kurulu"
 elif command -v ffmpeg >/dev/null 2>&1; then
@@ -45,16 +45,45 @@ else
   echo "      ✓ $("$BIN/ffmpeg" -version 2>&1 | head -1 | cut -c1-40)"
 fi
 
-# ---------------------------------------------- 3. motor + arayüz
-echo "[3/6] Motor ve panel kopyalanıyor..."
+# ---------------------------------------------- 3. JS çalışma ortamı (deno)
+# yt-dlp, YouTube'un imza kodunu çözmek için bir JS motoruna ihtiyaç duyuyor.
+# Yoksa kilitli "android_vr" istemcisine düşüyor; o istemcinin bağlantıları
+# ffmpeg'e 403 veriyor ve ARALIK KESME özelliği çalışmıyor.
+echo "[3/7] JS motoru (deno) aranıyor..."
+if [ -x "$BIN/deno" ] || command -v deno >/dev/null 2>&1; then
+  echo "      ✓ zaten kurulu"
+else
+  case "$(uname -m)" in
+    arm64) DENO_ARC="aarch64-apple-darwin" ;;
+    *)     DENO_ARC="x86_64-apple-darwin" ;;
+  esac
+  if curl -sL -o /tmp/deno.zip \
+      "https://github.com/denoland/deno/releases/latest/download/deno-$DENO_ARC.zip" \
+     && unzip -oq /tmp/deno.zip -d /tmp/denokur; then
+    mv /tmp/denokur/deno "$BIN/deno"
+    chmod +x "$BIN/deno"
+    xattr -dr com.apple.quarantine "$BIN/deno" 2>/dev/null || true
+    rm -rf /tmp/deno.zip /tmp/denokur
+    echo "      ✓ $("$BIN/deno" --version 2>/dev/null | head -1)"
+  else
+    echo "      · İndirilemedi — aralık kesme çalışmayabilir, gerisi sorunsuz"
+  fi
+fi
+
+# ---------------------------------------------- 4. motor + arayüz
+echo "[4/7] Motor ve panel kopyalanıyor..."
 cp "$KAYNAK/server.py" "$KAYNAK/ui.html" "$UYG/"
 [ -f "$KAYNAK/docs/index.html" ] && cp "$KAYNAK/docs/index.html" "$UYG/tanitim.html"
+# tanıtım sayfasının bağlandığı dosyalar — bunlar kopyalanmazsa yerel /tanitim
+# adresinde tanıtım videosu ve rehber 404 veriyor
+[ -f "$KAYNAK/docs/tutorial.html" ] && cp "$KAYNAK/docs/tutorial.html" "$UYG/rehber.html"
+[ -f "$KAYNAK/docs/indiragandi.mp4" ] && cp "$KAYNAK/docs/indiragandi.mp4" "$UYG/indiragandi.mp4"
 cp "$KAYNAK/cli/indir" "$KAYNAK/cli/gandi" "$BIN/"
 chmod +x "$BIN/indir" "$BIN/gandi"
 echo "      ✓ $UYG"
 
-# ---------------------------------------------- 4. PATH
-echo "[4/6] PATH ayarlanıyor..."
+# ---------------------------------------------- 5. PATH
+echo "[5/7] PATH ayarlanıyor..."
 if ! grep -q 'HOME/bin' "$HOME/.zshrc" 2>/dev/null; then
   echo 'export PATH="$HOME/bin:$PATH"' >> "$HOME/.zshrc"
   echo "      ✓ ~/.zshrc güncellendi"
@@ -62,8 +91,8 @@ else
   echo "      ✓ zaten ekli"
 fi
 
-# ---------------------------------------------- 5. Mac uygulaması
-echo "[5/6] İndiragandi.app oluşturuluyor..."
+# ---------------------------------------------- 6. Mac uygulaması
+echo "[6/7] İndiragandi.app oluşturuluyor..."
 TMPAS=$(mktemp /tmp/indiragandi.XXXXXX.applescript)
 printf 'do shell script "$HOME/bin/gandi"\n' > "$TMPAS"
 rm -rf "$APP"
@@ -71,8 +100,8 @@ osacompile -o "$APP" "$TMPAS" 2>/dev/null
 rm -f "$TMPAS"
 echo "      ✓ $APP"
 
-# ---------------------------------------------- 6. NLE eklentileri
-echo "[6/6] Premiere / After Effects / Resolve eklentileri..."
+# ---------------------------------------------- 7. NLE eklentileri
+echo "[7/7] Premiere / After Effects / Resolve eklentileri..."
 
 if [ -d "$HOME/Library/Application Support/Adobe" ]; then
   for v in 9 10 11 12 13; do

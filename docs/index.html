@@ -527,9 +527,10 @@ bash kur.sh</pre>
 
     <div class="uyari">
       <b>Neden her yerde çalışmıyor?</b> Bu sayfa GitHub üzerinden <code>https://</code> ile geliyor.
-      Tarayıcılar güvenlik gereği https sayfaların <code>http://localhost</code> adresine istek atmasını engelliyor.
-      Gerçek indirme için <b>PANELİ AÇ</b> butonuna bas — aynı arayüz, motorun kendi adresinde açılır.
-      Kurulumdan sonra bu sayfa <code>localhost:8767/tanitim</code> adresinden de açılabiliyor, orada canlı panel tam çalışır.
+      Chrome ve Firefox <code>http://localhost</code> adresini güvenli sayar — <b>İndiragandi</b> uygulamasını
+      bir kez açıp sayfayı yenilersen panel canlıya geçer ve gerçekten indirir.
+      <b>Safari</b> bu isteği tamamen engelliyor; orada <b>PANELİ AÇ</b> butonuna bas ya da bu sayfayı
+      <code>localhost:8767/tanitim</code> adresinden aç — aynı arayüz, motorun kendi adresinde, tam çalışır.
     </div>
   </div>
 </section>
@@ -988,13 +989,28 @@ function pCiz(y){
 pCiz(0);
 
 function motorKontrol(){
-  if(location.protocol === "https:"){
-    canliDegisti(false, "Bu sayfa <b>https</b> üzerinden geldiği için tarayıcı yerel motora bağlanmayı engelliyor. Aşağıdaki panel demo modunda çalışıyor.");
-    return;
-  }
-  fetch(API + "/api/gecmis", {cache:"no-store"})
-    .then(function(){ canliDegisti(true, "Motor <b>çalışıyor</b>. Aşağıdaki panel gerçek indirme yapar."); })
-    .catch(function(){ canliDegisti(false, "Motor bulunamadı. <b>İndiragandi</b> uygulamasını bir kez aç, sonra sayfayı yenile."); });
+  // https sayfadan http://127.0.0.1 adresine istek atmak Chrome ve Firefox'ta
+  // serbest (localhost "güvenli köken" sayılır), Safari'de engelli. Peşinen
+  // demo moduna düşmek yerine gerçekten deniyoruz; tutarsa panel canlı çalışır.
+  var kes = null, secenek = {cache:"no-store"};
+  try{
+    var iptal = new AbortController();
+    secenek.signal = iptal.signal;
+    kes = setTimeout(function(){ iptal.abort(); }, 3000);
+  }catch(e){}
+  fetch(API + "/api/gecmis", secenek)
+    .then(function(r){
+      if(kes) clearTimeout(kes);
+      if(!r.ok) throw new Error("motor yanit vermedi");
+      canliDegisti(true, "Motor <b>çalışıyor</b>. Aşağıdaki panel gerçek indirme yapar.");
+    })
+    .catch(function(){
+      if(kes) clearTimeout(kes);
+      if(location.protocol === "https:")
+        canliDegisti(false, "Motor kapalı ya da tarayıcı <b>https → localhost</b> isteğini engelledi (Safari engeller, Chrome izin verir). <b>PANELİ AÇ</b> — aynı panel motorun kendi adresinde açılır, orada indirme çalışır.");
+      else
+        canliDegisti(false, "Motor bulunamadı. <b>İndiragandi</b> uygulamasını bir kez aç, sonra sayfayı yenile.");
+    });
 }
 function canliDegisti(durum, mesaj){
   canli = durum;

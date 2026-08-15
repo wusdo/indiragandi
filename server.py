@@ -277,6 +277,10 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header("Access-Control-Allow-Origin", "*")
         self.send_header("Access-Control-Allow-Headers", "Content-Type")
         self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        # GitHub Pages'teki https tanıtım sayfası buraya (yerel ağ) istek atarken
+        # Chrome "Private Network Access" ön kontrolü yapar; bu başlık olmadan
+        # istek engellenir ve panel demo moduna düşer.
+        self.send_header("Access-Control-Allow-Private-Network", "true")
         self.end_headers()
         self.wfile.write(govde)
 
@@ -307,6 +311,21 @@ class Handler(BaseHTTPRequestHandler):
             except FileNotFoundError:
                 self._gonder(404, b"tanitim.html kurulu degil",
                              "text/plain; charset=utf-8")
+            return
+
+        # tanıtım sayfasının ihtiyaç duyduğu dosyalar
+        STATIK = {
+            "/tutorial.html":   ("rehber.html", "text/html; charset=utf-8"),
+            "/rehber":          ("rehber.html", "text/html; charset=utf-8"),
+            "/indiragandi.mp4": ("indiragandi.mp4", "video/mp4"),
+        }
+        if yol.path in STATIK:
+            dosya, tip = STATIK[yol.path]
+            try:
+                with open(os.path.join(BASE, dosya), "rb") as f:
+                    self._gonder(200, f.read(), tip)
+            except FileNotFoundError:
+                self._gonder(404, b"yok", "text/plain; charset=utf-8")
             return
 
         if yol.path == "/api/pano":
