@@ -491,6 +491,7 @@ bash kur.sh</pre>
       <span class="nokta" id="nokta"></span>
       <span class="yz" id="canliYazi">Motor aranıyor...</span>
       <span class="demoEtiket" id="demoEtiket" style="display:none">DEMO MODU</span>
+      <button class="btn kucuk" id="motoraBaglan" style="display:none">MOTORA BAĞLAN</button>
       <a class="btn kucuk" id="paneliAc" href="http://localhost:8767/" target="_blank" rel="noopener">PANELİ AÇ</a>
     </div>
 
@@ -526,11 +527,12 @@ bash kur.sh</pre>
     </div>
 
     <div class="uyari">
-      <b>Neden her yerde çalışmıyor?</b> Bu sayfa GitHub üzerinden <code>https://</code> ile geliyor.
-      Chrome ve Firefox <code>http://localhost</code> adresini güvenli sayar — <b>İndiragandi</b> uygulamasını
-      bir kez açıp sayfayı yenilersen panel canlıya geçer ve gerçekten indirir.
-      <b>Safari</b> bu isteği tamamen engelliyor; orada <b>PANELİ AÇ</b> butonuna bas ya da bu sayfayı
-      <code>localhost:8767/tanitim</code> adresinden aç — aynı arayüz, motorun kendi adresinde, tam çalışır.
+      <b>Bu panel gerçekten indirir.</b> Sayfa GitHub'da <code>https://</code> ile duruyor ama indirmeyi
+      bilgisayarındaki motor yapıyor — <b>İndiragandi</b> uygulaması açık olmalı.
+      <b>Chrome</b> yerel ağa erişim için bir kez izin ister: <b>MOTORA BAĞLAN</b> deyip <b>İzin Ver</b>
+      seçtiğinde panel canlıya geçer ve bir daha sormaz. <b>Firefox</b> doğrudan bağlanır.
+      <b>Safari</b> bu bağlantıyı tamamen engelliyor; orada <b>PANELİ AÇ</b> butonu ya da
+      <code>localhost:8767</code> adresi aynı paneli sorunsuz açar.
     </div>
   </div>
 </section>
@@ -988,37 +990,85 @@ function pCiz(y){
 }
 pCiz(0);
 
-function motorKontrol(){
-  // https sayfadan http://127.0.0.1 adresine istek atmak Chrome ve Firefox'ta
-  // serbest (localhost "güvenli köken" sayılır), Safari'de engelli. Peşinen
-  // demo moduna düşmek yerine gerçekten deniyoruz; tutarsa panel canlı çalışır.
-  var kes = null, secenek = {cache:"no-store"};
+/* Chrome 151+ "Local Network Access": https bir sayfanın 127.0.0.1 adresine
+   istek atabilmesi için isteğin açıkça loopback'i hedeflediğini söylemesi VE
+   kullanıcının bir kez izin vermesi gerekiyor. Eski
+   Access-Control-Allow-Private-Network başlığı tek başına yetmiyor.
+   Firefox localhost'u güvenli köken saydığı için bu alanı yok sayıp çalışıyor,
+   Safari isteği tamamen engelliyor — orada PANELİ AÇ devreye giriyor. */
+function motorIstek(yol, ek){
+  var o = {cache:"no-store", targetAddressSpace:"loopback"};
+  for(var k in (ek || {})) o[k] = ek[k];
+  return fetch(API + yol, o);
+}
+
+function izinDurumu(){
+  try{
+    return navigator.permissions.query({name:"local-network-access"})
+      .then(function(p){ return p.state; })
+      .catch(function(){ return "bilinmiyor"; });
+  }catch(e){ return Promise.resolve("bilinmiyor"); }
+}
+
+function motoraBaglan(){
+  var kes = null, ek = {};
   try{
     var iptal = new AbortController();
-    secenek.signal = iptal.signal;
-    kes = setTimeout(function(){ iptal.abort(); }, 3000);
+    ek.signal = iptal.signal;
+    kes = setTimeout(function(){ iptal.abort(); }, 15000);
   }catch(e){}
-  fetch(API + "/api/gecmis", secenek)
+  return motorIstek("/api/gecmis", ek)
     .then(function(r){
       if(kes) clearTimeout(kes);
-      if(!r.ok) throw new Error("motor yanit vermedi");
+      if(!r.ok) throw new Error("motor yanıt vermedi");
       canliDegisti(true, "Motor <b>çalışıyor</b>. Aşağıdaki panel gerçek indirme yapar.");
+      return true;
     })
     .catch(function(){
       if(kes) clearTimeout(kes);
       if(location.protocol === "https:")
-        canliDegisti(false, "Motor kapalı ya da tarayıcı <b>https → localhost</b> isteğini engelledi (Safari engeller, Chrome izin verir). <b>PANELİ AÇ</b> — aynı panel motorun kendi adresinde açılır, orada indirme çalışır.");
+        canliDegisti(false, "Bağlanılamadı. <b>İndiragandi</b> uygulaması açık mı? Safari kullanıyorsan bu bağlantıyı tamamen engelliyor — <b>PANELİ AÇ</b> ile aynı panel motorun kendi adresinde açılır.", true);
       else
         canliDegisti(false, "Motor bulunamadı. <b>İndiragandi</b> uygulamasını bir kez aç, sonra sayfayı yenile.");
+      return false;
     });
 }
-function canliDegisti(durum, mesaj){
+
+function motorKontrol(){
+  izinDurumu().then(function(d){
+    // Sayfa açılır açılmaz izin penceresi çıkarmıyoruz — kullanıcı butona
+    // basınca soruyoruz. İzin daha önce verildiyse sessizce bağlanıyoruz.
+    if(d === "prompt"){
+      canliDegisti(false, "Motor kurulu ve açıksa panel gerçekten indirir. Tarayıcı yerel bağlantı için bir kez izin isteyecek — <b>MOTORA BAĞLAN</b>.", false, true);
+      return;
+    }
+    if(d === "denied"){
+      canliDegisti(false, "Bu site için <b>yerel ağ izni reddedilmiş</b>. Adres çubuğundaki kilit simgesinden izni açabilir ya da <b>PANELİ AÇ</b> ile motorun kendi adresine geçebilirsin.", true);
+      return;
+    }
+    motoraBaglan();   // granted / bilinmiyor (Firefox, Safari, http)
+  });
+}
+function canliDegisti(durum, mesaj, panelGoster, baglanGoster){
   canli = durum;
   $("#nokta").className = "nokta" + (durum ? " yesil" : "");
   $("#canliYazi").innerHTML = mesaj;
   $("#demoEtiket").style.display = durum ? "none" : "inline-block";
-  $("#paneliAc").style.display = durum ? "none" : "inline-block";
+  $("#motoraBaglan").style.display = (!durum && baglanGoster) ? "inline-block" : "none";
+  // "PANELİ AÇ" yalnızca gerçekten gerektiğinde; henüz izin istenmemişken
+  // kullanıcıyı ikinci bir butonla dağıtmıyoruz.
+  $("#paneliAc").style.display = (!durum && panelGoster !== false && !baglanGoster)
+                                 ? "inline-block" : "none";
 }
+
+$("#motoraBaglan").onclick = function(){
+  // Kullanıcı hareketi — izin penceresi burada çıkıyor.
+  $("#motoraBaglan").disabled = true;
+  canliDegisti(false, "Bağlanılıyor... tarayıcı izin isterse <b>İzin Ver</b> de.", false, true);
+  $("#motoraBaglan").style.display = "inline-block";
+  motoraBaglan().then(function(){ $("#motoraBaglan").disabled = false; });
+};
+
 motorKontrol();
 
 $("#pFormatlar").addEventListener("click", function(e){
@@ -1031,7 +1081,7 @@ $("#pFormatlar").addEventListener("click", function(e){
 
 $("#pPano").onclick = function(){
   if(canli){
-    fetch(API + "/api/pano").then(function(r){ return r.json(); }).then(function(d){
+    motorIstek("/api/pano").then(function(r){ return r.json(); }).then(function(d){
       if(d.metin && d.metin.indexOf("http") === 0) $("#pUrl").value = d.metin;
     }).catch(function(){});
     return;
@@ -1046,7 +1096,11 @@ $("#pPano").onclick = function(){
 $("#pIndir").onclick = function(){
   var u = ($("#pUrl").value || "").trim();
   if(u.indexOf("http") !== 0){ $("#pUrl").focus(); bip(160,.15); return; }
-  if(canli) gercekIndir(u); else demoIndir();
+  if(canli){ gercekIndir(u); return; }
+  // Henüz bağlı değiliz: bu tıklama bir kullanıcı hareketi, izin penceresini
+  // burada açabiliriz. Bağlanırsak gerçek indirme, olmazsa demo.
+  $("#pAsama").textContent = "Motora bağlanılıyor...";
+  motoraBaglan().then(function(ok){ if(ok) gercekIndir(u); else demoIndir(); });
 };
 
 function gercekIndir(u){
@@ -1054,14 +1108,14 @@ function gercekIndir(u){
   var govde = {url:u, format:pFormat};
   var b = $("#pBas").value.trim(), e = $("#pBit").value.trim();
   if(b || e){ govde.bas = b; govde.bit = e; }
-  fetch(API + "/api/indir", {method:"POST",headers:{"Content-Type":"application/json"},
+  motorIstek("/api/indir", {method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify(govde)})
   .then(function(r){ return r.json(); })
   .then(function(d){
     if(!d.id) throw new Error(d.hata || "Başlatılamadı");
     pIs = d.id;
     pAnket = setInterval(function(){
-      fetch(API + "/api/durum?id=" + pIs).then(function(r){ return r.json(); }).then(function(s){
+      motorIstek("/api/durum?id=" + pIs).then(function(r){ return r.json(); }).then(function(s){
         if(s.asama) $("#pAsama").textContent = s.asama;
         if(typeof s.yuzde === "number") pCiz(s.yuzde);
         if(s.durum === "bitti"){

@@ -127,31 +127,74 @@ def bilgi_getir(url, tarayici=None):
         return {"hata": [str(e)]}
 
 
+def _gecici_ag_hatasi(satirlar):
+    """
+    --download-sections, parçayı ffmpeg'e indirtiyor. ffmpeg yt-dlp'nin
+    oturumunu taşımadığı için YouTube ara sıra o bağlantıya 403 dönüyor —
+    aynı komut saniyeler sonra sorunsuz çalışabiliyor. Bu hatayı tanıyıp
+    önce tekrar deniyor, sonra tamamını indirip yerelde kesiyoruz.
+    """
+    metin = " ".join(satirlar[-25:]).lower()
+    return ("ffmpeg exited with code" in metin
+            or "403" in metin
+            or "forbidden" in metin)
+
+
+def _yerel_kes(iid, yol, b, e, tam_kare):
+    """İnmiş tam dosyayı yerelde istenen aralığa kırpar (ağ gerektirmez)."""
+    if not yol or not os.path.exists(yol):
+        return False
+    kok, uzanti = os.path.splitext(yol)
+    gecici = kok + ".kesiliyor" + (uzanti or ".mp4")
+    cmd = [os.path.join(FFMPEG_DIR, "ffmpeg"), "-y", "-ss", "%.3f" % b]
+    if e is not None:
+        cmd += ["-t", "%.3f" % (e - b)]
+    cmd += ["-i", yol]
+    if tam_kare:
+        # Tam istenen karede başlaması için kesim yeniden kodlanır (yavaş).
+        cmd += ["-c:v", "libx264", "-crf", "18", "-preset", "veryfast", "-c:a", "aac"]
+    else:
+        cmd += ["-c", "copy"]
+    cmd += ["-movflags", "+faststart", gecici]
+
+    is_guncelle(iid, asama="Yerelde kesiliyor...", yuzde=99)
+    try:
+        r = subprocess.run(cmd, capture_output=True, text=True, env=ENV)
+    except Exception:
+        r = None
+    if r is not None and r.returncode == 0 and os.path.exists(gecici) \
+       and os.path.getsize(gecici) > 0:
+        os.replace(gecici, yol)
+        return True
+    if os.path.exists(gecici):
+        try:
+            os.remove(gecici)
+        except OSError:
+            pass
+    return False
+
+
 def indir_calistir(iid, url, format_kodu, tarayici,
                    bas=None, bit=None, tam_kare=False):
-    cmd = [YTDLP]
-    cmd += FORMATLAR.get(format_kodu, FORMATLAR["best"])
-    cmd += cerez_argumani(tarayici)
-
     # --- istenen aralık ---
     bas_sn, bit_sn = zaman_sn(bas), zaman_sn(bit)
     kesme_eki = ""
-    if bas_sn is not None or bit_sn is not None:
+    b = e = None
+    kesiliyor = bas_sn is not None or bit_sn is not None
+    if kesiliyor:
         b = bas_sn if bas_sn is not None else 0.0
-        e = bit_sn if bit_sn is not None else None
+        e = bit_sn
         if e is not None and e <= b:
             is_guncelle(iid, durum="hata",
                         hata="Bitiş zamanı başlangıçtan büyük olmalı")
             return
-        cmd += ["--download-sections",
-                "*%s-%s" % (b, e if e is not None else "inf")]
-        if tam_kare:
-            # Tam istenen karede keser; kesim çevresini yeniden kodlar (yavaş).
-            cmd += ["--force-keyframes-at-cuts"]
         kesme_eki = " [%s-%s]" % (sn_etiket(b),
                                   sn_etiket(e) if e is not None else "son")
 
-    cmd += [
+    ortak = [YTDLP]
+    ortak += FORMATLAR.get(format_kodu, FORMATLAR["best"])
+    ortak += cerez_argumani(tarayici)
+    ortak += [
         "-o", os.path.join(HEDEF,
                            "%(uploader,channel|indirilen)s - %(title).80B"
                            + kesme_eki + ".%(ext)s"),
@@ -169,23 +212,90 @@ def indir_calistir(iid, url, format_kodu, tarayici,
         #  başka bir işin geçici ses parçasına denk gelebiliyordu.)
         "--no-simulate",
         "--print", "after_move:IGYOL|%(filepath)s",
-        url,
     ]
 
+    kesme_args = []
+    if kesiliyor:
+        kesme_args = ["--download-sections",
+                      "*%s-%s" % (b, e if e is not None else "inf")]
+        if tam_kare:
+            kesme_args += ["--force-keyframes-at-cuts"]
+
+    sadece_ses = format_kodu == "mp3"
+    bas_zaman = time.time()
+
+    # 1) Hızlı yol: yalnızca istenen aralığı indir.
+    kod, yol, satirlar = _ytdlp_calistir(iid, ortak + kesme_args + [url], sadece_ses)
+
+    # 2) Aralık indirmesi geçici bir ağ hatasına takıldıysa bir kez tekrar dene.
+    if kod != 0 and kesiliyor and _gecici_ag_hatasi(satirlar):
+        is_guncelle(iid, asama="Bağlantı reddedildi, tekrar deneniyor...",
+                    yuzde=0, hata="")
+        time.sleep(2)
+        kod, yol, satirlar = _ytdlp_calistir(iid, ortak + kesme_args + [url],
+                                             sadece_ses)
+
+        # 3) Hâlâ olmuyorsa tamamını indirip yerelde kes — yavaş ama kesin.
+        if kod != 0 and _gecici_ag_hatasi(satirlar):
+            is_guncelle(iid, asama="Parça indirilemedi, tamamı indiriliyor...",
+                        yuzde=0, hata="")
+            bas_zaman = time.time()
+            kod, yol, satirlar = _ytdlp_calistir(iid, ortak + [url], sadece_ses)
+            if kod == 0:
+                yol = _tam_yol_bul(yol, bas_zaman)
+                if not _yerel_kes(iid, yol, b, e, tam_kare):
+                    is_guncelle(iid, durum="hata",
+                                hata="İndirildi ama istenen aralık kesilemedi")
+                    return
+
+    if kod == 0:
+        tam_yol = _tam_yol_bul(yol, bas_zaman)
+        dosya = os.path.basename(tam_yol) if tam_yol else ""
+        is_guncelle(iid, durum="bitti", yuzde=100, asama="Tamam",
+                    dosya=dosya, yol=tam_yol)
+    else:
+        with ISLER_KILIT:
+            mevcut = ISLER.get(iid, {}).get("hata")
+        mesaj = mevcut or (satirlar[-1] if satirlar else "Bilinmeyen hata")
+        is_guncelle(iid, durum="hata", hata=mesaj)
+
+
+def _tam_yol_bul(gercek_yol, bas_zaman):
+    if gercek_yol and os.path.exists(gercek_yol):
+        return gercek_yol
+    # Yedek plan: yalnızca BU iş başladıktan sonra oluşmuş,
+    # tamamlanmış (ara parça olmayan) dosyalara bak.
+    try:
+        adaylar = []
+        for f in os.listdir(HEDEF):
+            if f.startswith(".") or ".f" in f.rsplit(".", 2)[0][-6:]:
+                continue
+            p2 = os.path.join(HEDEF, f)
+            if os.path.getmtime(p2) >= bas_zaman - 1:
+                adaylar.append(p2)
+        if adaylar:
+            return max(adaylar, key=os.path.getmtime)
+    except Exception:
+        pass
+    return ""
+
+
+def _ytdlp_calistir(iid, cmd, sadece_ses):
+    """
+    yt-dlp'yi çalıştırıp ilerlemeyi işe yansıtır.
+    (çıkış kodu, yt-dlp'nin bildirdiği dosya yolu, son çıktı satırları) döner.
+    """
     is_guncelle(iid, durum="calisiyor", asama="Bağlanıyor...")
 
     try:
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
                              text=True, bufsize=1, env=ENV)
     except Exception as e:
-        is_guncelle(iid, durum="hata", hata=str(e))
-        return
+        return 1, "", [str(e)]
 
     son_satirlar = []
     parca = 0
-    sadece_ses = format_kodu == "mp3"
     gercek_yol = ""
-    bas_zaman = time.time()
 
     for satir in p.stdout:
         satir = satir.rstrip()
@@ -229,34 +339,7 @@ def indir_calistir(iid, url, format_kodu, tarayici,
             is_guncelle(iid, hata=satir[6:].strip())
 
     p.wait()
-
-    if p.returncode == 0:
-        tam_yol = gercek_yol if (gercek_yol and os.path.exists(gercek_yol)) else ""
-
-        if not tam_yol:
-            # Yedek plan: yalnızca BU iş başladıktan sonra oluşmuş,
-            # tamamlanmış (ara parça olmayan) dosyalara bak.
-            try:
-                adaylar = []
-                for f in os.listdir(HEDEF):
-                    if f.startswith(".") or ".f" in f.rsplit(".", 2)[0][-6:]:
-                        continue
-                    p2 = os.path.join(HEDEF, f)
-                    if os.path.getmtime(p2) >= bas_zaman - 1:
-                        adaylar.append(p2)
-                if adaylar:
-                    tam_yol = max(adaylar, key=os.path.getmtime)
-            except Exception:
-                pass
-
-        dosya = os.path.basename(tam_yol) if tam_yol else ""
-        is_guncelle(iid, durum="bitti", yuzde=100, asama="Tamam",
-                    dosya=dosya, yol=tam_yol)
-    else:
-        with ISLER_KILIT:
-            mevcut = ISLER.get(iid, {}).get("hata")
-        mesaj = mevcut or (son_satirlar[-1] if son_satirlar else "Bilinmeyen hata")
-        is_guncelle(iid, durum="hata", hata=mesaj)
+    return p.returncode, gercek_yol, son_satirlar
 
 
 # ---------------------------------------------------------------- HTTP
