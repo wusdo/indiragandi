@@ -1011,21 +1011,17 @@ function izinDurumu(){
 }
 
 function motoraBaglan(){
-  var kes = null, ek = {};
-  try{
-    var iptal = new AbortController();
-    ek.signal = iptal.signal;
-    kes = setTimeout(function(){ iptal.abort(); }, 15000);
-  }catch(e){}
-  return motorIstek("/api/gecmis", ek)
+  // Zaman aşımı YOK: Chrome izin penceresini açtığında istek kullanıcı
+  // cevaplayana kadar bekliyor. Buraya bir sayaç koyunca kullanıcı "İzin Ver"e
+  // basmadan istek iptal oluyor ve panel boşuna "bağlanamadım" diyordu.
+  // Motor kapalıysa bağlantı zaten anında reddedilir, beklemeye gerek kalmaz.
+  return motorIstek("/api/gecmis")
     .then(function(r){
-      if(kes) clearTimeout(kes);
       if(!r.ok) throw new Error("motor yanıt vermedi");
       canliDegisti(true, "Motor <b>çalışıyor</b>. Aşağıdaki panel gerçek indirme yapar.");
       return true;
     })
     .catch(function(){
-      if(kes) clearTimeout(kes);
       if(location.protocol === "https:")
         canliDegisti(false, "Bağlanılamadı. <b>İndiragandi</b> uygulaması açık mı? Safari kullanıyorsan bu bağlantıyı tamamen engelliyor — <b>PANELİ AÇ</b> ile aynı panel motorun kendi adresinde açılır.", true);
       else
