@@ -54,6 +54,38 @@ FORMATLAR = {
     "best":  ["-f", "bv*+ba/b", "--merge-output-format", "mp4"],
 }
 
+YUKSEKLIK = {"720": 720, "1080": 1080, "1440": 1440, "2160": 2160}
+
+# Bu siteler videoyu tek parça (görüntü+ses birlikte) H.264 mp4 olarak veriyor.
+# Ayrı DASH akışları da sunuyorlar ama onlar VP9 — ve yt-dlp tek parça formatın
+# çözünürlüğünü/codec'ini "unknown" bildirdiği için yukarıdaki avc1 zinciri onu
+# eleyip VP9'u seçiyordu. VP9 mp4, Premiere ve After Effects'te tutukluk yapıyor.
+BIRLESIK_SITELER = (
+    "instagram.com", "tiktok.com", "twitter.com", "x.com",
+    "facebook.com", "fb.watch", "threads.net", "threads.com",
+)
+
+
+def _birlesik_site(url):
+    try:
+        yer = urlparse(url).netloc.lower()
+    except Exception:
+        return False
+    yer = yer.split("@")[-1].split(":")[0]
+    return any(yer == a or yer.endswith("." + a) for a in BIRLESIK_SITELER)
+
+
+def format_argumani(format_kodu, url):
+    """Siteye göre format zincirini seçer."""
+    if format_kodu == "mp3":
+        return FORMATLAR["mp3"]
+    if _birlesik_site(url):
+        h = YUKSEKLIK.get(format_kodu)
+        # Yükseklik bilinmiyorsa süzgeç eşleşmiyor; sondaki sade "b" onu kurtarıyor.
+        zincir = "b[height<=%d]/b" % h if h else "b"
+        return ["-f", zincir, "--merge-output-format", "mp4"]
+    return FORMATLAR.get(format_kodu, FORMATLAR["best"])
+
 ISLER = {}          # id -> durum sözlüğü
 ISLER_KILIT = threading.Lock()
 
@@ -192,7 +224,7 @@ def indir_calistir(iid, url, format_kodu, tarayici,
                                   sn_etiket(e) if e is not None else "son")
 
     ortak = [YTDLP]
-    ortak += FORMATLAR.get(format_kodu, FORMATLAR["best"])
+    ortak += format_argumani(format_kodu, url)
     ortak += cerez_argumani(tarayici)
     ortak += [
         "-o", os.path.join(HEDEF,
